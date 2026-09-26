@@ -1,0 +1,12 @@
+# macOS and Xcode local files
+.DS_Store
+._*
+DerivedData/
+.build/
+*.xcresult
+xcuserdata/
+*.xcuserstate
+# Personal inputs and signing credentials
+private-samples/
+*.p12
+*.mobileprovision

@@ -1,0 +1,674 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		125A50B806A7E5598C87D27E /* EditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0181DB74005BF6D1ED1DB5E0 /* EditorModel.swift */; };
+		1E66CCB717213FEE056C6BE7 /* LaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9137561C2ECF86746769B9AB /* LaunchTests.swift */; };
+		3318757138CB550CE33533E7 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6024DDFCAA974774DC0CC836 /* EditorView.swift */; };
+		35A0A0265EAF74EDF97B7990 /* EditSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39B1F854E21F4AD12DF76EBA /* EditSettings.swift */; };
+		39784230204586139E1576DC /* JPEGImageDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 89BF6D465B700A8BF5D967C5 /* JPEGImageDocument.swift */; };
+		3BB722270FC9F517465D5CD7 /* PictureFilterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F765EEC20EF9F4B419EE2A6 /* PictureFilterApp.swift */; };
+		49AEB78F1CACE127F6CA74B7 /* sample-landscape.png in Resources */ = {isa = PBXBuildFile; fileRef = 97D611C619E29A6D83E7347B /* sample-landscape.png */; };
+		58E951AE79CD8C62EE8B4145 /* AppHostTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CEAFD5EC0A2B9C70AE0E7BF /* AppHostTests.swift */; };
+		6144916B53C0432866491AA4 /* ImageServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D559DA808FC7A7D8EF908E9E /* ImageServices.swift */; };
+		6D04B58550578D759410FD4E /* CameraCaptureSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEE48091B86A2DC038F55EE4 /* CameraCaptureSheet.swift */; };
+		90A1CCC1CBCBBEF2AEDD5098 /* FilterRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 797656E7AF2BD3EAABF29066 /* FilterRenderer.swift */; };
+		96173534936D5B6C8A2F7580 /* ImageServicesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 731B36E0EDBEF036D3435BDF /* ImageServicesTests.swift */; };
+		98B109722F4AAF154BB9115E /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53D70EA59F0F207B273E0A9E /* WelcomeView.swift */; };
+		A25AED7AB9A1F813FFC9A0B3 /* EditorModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DBAA8A31BFFD0E9D2E5BDB /* EditorModelTests.swift */; };
+		C3813FD2AAD92A7741A2CAB1 /* FilterRendererTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87EB3310E169B26C35B2A303 /* FilterRendererTests.swift */; };
+		C4405A836C80656DDECA8F34 /* FaceSkinSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEFA89E770A38977911D3C9D /* FaceSkinSmoother.swift */; };
+		C7B51B74B1597B385D91B30B /* PreviewSchedulingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15B0C33A817D8FE572CF7762 /* PreviewSchedulingTests.swift */; };
+		DAFDFDF98A512EC5D3E4E344 /* synthetic-face.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 10AEE0CBE2A1399CB4588A3A /* synthetic-face.jpg */; };
+		E2DFA2DB93EC746993738321 /* sample-portrait.png in Resources */ = {isa = PBXBuildFile; fileRef = FD9FDB49A94F3EF65895C03E /* sample-portrait.png */; };
+		F5F85DFEBD720CB71FBD7CDA /* AppServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = 15F2CC5100E0DCA0DCEE5DE7 /* AppServices.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		8D6CAE9BCCB3E8AE5F617E04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D168F34820826690C70C2B3B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 45E7DC045EC11E2D747BCFF5;
+			remoteInfo = PictureFilterApp;
+		};
+		D5817386B6FC2CBB4E44E9C2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D168F34820826690C70C2B3B /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 45E7DC045EC11E2D747BCFF5;
+			remoteInfo = PictureFilterApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0181DB74005BF6D1ED1DB5E0 /* EditorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorModel.swift; sourceTree = "<group>"; };
+		10AEE0CBE2A1399CB4588A3A /* synthetic-face.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "synthetic-face.jpg"; sourceTree = "<group>"; };
+		15B0C33A817D8FE572CF7762 /* PreviewSchedulingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewSchedulingTests.swift; sourceTree = "<group>"; };
+		15F2CC5100E0DCA0DCEE5DE7 /* AppServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServices.swift; sourceTree = "<group>"; };
+		215796546AC5FBAD7B61060E /* PictureFilterAppUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PictureFilterAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2CEAFD5EC0A2B9C70AE0E7BF /* AppHostTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppHostTests.swift; sourceTree = "<group>"; };
+		39B1F854E21F4AD12DF76EBA /* EditSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditSettings.swift; sourceTree = "<group>"; };
+		53D70EA59F0F207B273E0A9E /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
+		6024DDFCAA974774DC0CC836 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
+		63DBAA8A31BFFD0E9D2E5BDB /* EditorModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorModelTests.swift; sourceTree = "<group>"; };
+		731B36E0EDBEF036D3435BDF /* ImageServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageServicesTests.swift; sourceTree = "<group>"; };
+		797656E7AF2BD3EAABF29066 /* FilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRenderer.swift; sourceTree = "<group>"; };
+		87EB3310E169B26C35B2A303 /* FilterRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRendererTests.swift; sourceTree = "<group>"; };
+		89BF6D465B700A8BF5D967C5 /* JPEGImageDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JPEGImageDocument.swift; sourceTree = "<group>"; };
+		9137561C2ECF86746769B9AB /* LaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchTests.swift; sourceTree = "<group>"; };
+		97D611C619E29A6D83E7347B /* sample-landscape.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sample-landscape.png"; sourceTree = "<group>"; };
+		9F765EEC20EF9F4B419EE2A6 /* PictureFilterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PictureFilterApp.swift; sourceTree = "<group>"; };
+		AC271A088A3EDEDF9B750216 /* PictureFilterAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PictureFilterAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AEE48091B86A2DC038F55EE4 /* CameraCaptureSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureSheet.swift; sourceTree = "<group>"; };
+		D4534C335F70D13E70B0ADC6 /* PictureFilterApp.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = PictureFilterApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D559DA808FC7A7D8EF908E9E /* ImageServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageServices.swift; sourceTree = "<group>"; };
+		DEFA89E770A38977911D3C9D /* FaceSkinSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceSkinSmoother.swift; sourceTree = "<group>"; };
+		FD9FDB49A94F3EF65895C03E /* sample-portrait.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "sample-portrait.png"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		025A4D001E0FD3F30AD66F78 /* Editor */ = {
+			isa = PBXGroup;
+			children = (
+				AEE48091B86A2DC038F55EE4 /* CameraCaptureSheet.swift */,
+				0181DB74005BF6D1ED1DB5E0 /* EditorModel.swift */,
+				6024DDFCAA974774DC0CC836 /* EditorView.swift */,
+			);
+			path = Editor;
+			sourceTree = "<group>";
+		};
+		210937B1B2EED958C14CF21F /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				D559DA808FC7A7D8EF908E9E /* ImageServices.swift */,
+				89BF6D465B700A8BF5D967C5 /* JPEGImageDocument.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		3B66A1215CFBA70AE32482A6 /* PictureFilterApp */ = {
+			isa = PBXGroup;
+			children = (
+				CFED0A212ED73742BDE67B9A /* App */,
+				FC226BC1136DF7B0E665FF82 /* Features */,
+				AFC0899523C2819EAB1B35D9 /* Models */,
+				C7095A6BCF9A9E99B7A2071B /* Rendering */,
+				62416E0AD6864FDAF334569F /* Resources */,
+				210937B1B2EED958C14CF21F /* Services */,
+			);
+			path = PictureFilterApp;
+			sourceTree = "<group>";
+		};
+		3F52BE2639B61756663E1052 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				10AEE0CBE2A1399CB4588A3A /* synthetic-face.jpg */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		425F9484EF4931EA074B40B5 = {
+			isa = PBXGroup;
+			children = (
+				3B66A1215CFBA70AE32482A6 /* PictureFilterApp */,
+				C3E58A044FE3422D9E3AE122 /* PictureFilterAppTests */,
+				7B70B6878ABC3F2B4B544C13 /* PictureFilterAppUITests */,
+				64DECDEF9188E3795185ED10 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		4750BD2764D8C74F715D16F3 /* Samples */ = {
+			isa = PBXGroup;
+			children = (
+				97D611C619E29A6D83E7347B /* sample-landscape.png */,
+				FD9FDB49A94F3EF65895C03E /* sample-portrait.png */,
+			);
+			path = Samples;
+			sourceTree = "<group>";
+		};
+		62416E0AD6864FDAF334569F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				4750BD2764D8C74F715D16F3 /* Samples */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		64DECDEF9188E3795185ED10 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D4534C335F70D13E70B0ADC6 /* PictureFilterApp.app */,
+				AC271A088A3EDEDF9B750216 /* PictureFilterAppTests.xctest */,
+				215796546AC5FBAD7B61060E /* PictureFilterAppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7B70B6878ABC3F2B4B544C13 /* PictureFilterAppUITests */ = {
+			isa = PBXGroup;
+			children = (
+				9137561C2ECF86746769B9AB /* LaunchTests.swift */,
+			);
+			path = PictureFilterAppUITests;
+			sourceTree = "<group>";
+		};
+		7B8D2B26360BC69B25E92660 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				3F52BE2639B61756663E1052 /* Fixtures */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AFC0899523C2819EAB1B35D9 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				39B1F854E21F4AD12DF76EBA /* EditSettings.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		C3E58A044FE3422D9E3AE122 /* PictureFilterAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				2CEAFD5EC0A2B9C70AE0E7BF /* AppHostTests.swift */,
+				63DBAA8A31BFFD0E9D2E5BDB /* EditorModelTests.swift */,
+				87EB3310E169B26C35B2A303 /* FilterRendererTests.swift */,
+				731B36E0EDBEF036D3435BDF /* ImageServicesTests.swift */,
+				15B0C33A817D8FE572CF7762 /* PreviewSchedulingTests.swift */,
+				7B8D2B26360BC69B25E92660 /* Resources */,
+			);
+			path = PictureFilterAppTests;
+			sourceTree = "<group>";
+		};
+		C7095A6BCF9A9E99B7A2071B /* Rendering */ = {
+			isa = PBXGroup;
+			children = (
+				DEFA89E770A38977911D3C9D /* FaceSkinSmoother.swift */,
+				797656E7AF2BD3EAABF29066 /* FilterRenderer.swift */,
+			);
+			path = Rendering;
+			sourceTree = "<group>";
+		};
+		CFED0A212ED73742BDE67B9A /* App */ = {
+			isa = PBXGroup;
+			children = (
+				15F2CC5100E0DCA0DCEE5DE7 /* AppServices.swift */,
+				9F765EEC20EF9F4B419EE2A6 /* PictureFilterApp.swift */,
+				53D70EA59F0F207B273E0A9E /* WelcomeView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		FC226BC1136DF7B0E665FF82 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				025A4D001E0FD3F30AD66F78 /* Editor */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		45E7DC045EC11E2D747BCFF5 /* PictureFilterApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4662D25AD81D23ADDC5A63A1 /* Build configuration list for PBXNativeTarget "PictureFilterApp" */;
+			buildPhases = (
+				C8C86C13681E76F8D1F7FA02 /* Sources */,
+				F2F189092FB9203FA1F942C0 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PictureFilterApp;
+			packageProductDependencies = (
+			);
+			productName = PictureFilterApp;
+			productReference = D4534C335F70D13E70B0ADC6 /* PictureFilterApp.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A9E8A9FA4ED6299477EA77FE /* PictureFilterAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 258F94D87DDC960F5A0E431C /* Build configuration list for PBXNativeTarget "PictureFilterAppUITests" */;
+			buildPhases = (
+				8F20E751F917E032B3A6FD34 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				20EEBAE3387436018BE8E4CA /* PBXTargetDependency */,
+			);
+			name = PictureFilterAppUITests;
+			packageProductDependencies = (
+			);
+			productName = PictureFilterAppUITests;
+			productReference = 215796546AC5FBAD7B61060E /* PictureFilterAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		BA5DE77075268BEAF17945B1 /* PictureFilterAppTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C13FE13BE036668791A27423 /* Build configuration list for PBXNativeTarget "PictureFilterAppTests" */;
+			buildPhases = (
+				9E716188F8B1D47E309DCDF9 /* Sources */,
+				0B0A0144F2C7F229B5D3C971 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				3C697D06B374BB68E5626E81 /* PBXTargetDependency */,
+			);
+			name = PictureFilterAppTests;
+			packageProductDependencies = (
+			);
+			productName = PictureFilterAppTests;
+			productReference = AC271A088A3EDEDF9B750216 /* PictureFilterAppTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D168F34820826690C70C2B3B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					45E7DC045EC11E2D747BCFF5 = {
+						DevelopmentTeam = HNNV36L639;
+						ProvisioningStyle = Automatic;
+					};
+					A9E8A9FA4ED6299477EA77FE = {
+						DevelopmentTeam = HNNV36L639;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 45E7DC045EC11E2D747BCFF5;
+					};
+					BA5DE77075268BEAF17945B1 = {
+						DevelopmentTeam = HNNV36L639;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = B3C22BE5FA9785C4E371E4E9 /* Build configuration list for PBXProject "PictureFilterApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 425F9484EF4931EA074B40B5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 64DECDEF9188E3795185ED10 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				45E7DC045EC11E2D747BCFF5 /* PictureFilterApp */,
+				BA5DE77075268BEAF17945B1 /* PictureFilterAppTests */,
+				A9E8A9FA4ED6299477EA77FE /* PictureFilterAppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		0B0A0144F2C7F229B5D3C971 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAFDFDF98A512EC5D3E4E344 /* synthetic-face.jpg in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F2F189092FB9203FA1F942C0 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				49AEB78F1CACE127F6CA74B7 /* sample-landscape.png in Resources */,
+				E2DFA2DB93EC746993738321 /* sample-portrait.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		8F20E751F917E032B3A6FD34 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1E66CCB717213FEE056C6BE7 /* LaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9E716188F8B1D47E309DCDF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				58E951AE79CD8C62EE8B4145 /* AppHostTests.swift in Sources */,
+				A25AED7AB9A1F813FFC9A0B3 /* EditorModelTests.swift in Sources */,
+				C3813FD2AAD92A7741A2CAB1 /* FilterRendererTests.swift in Sources */,
+				96173534936D5B6C8A2F7580 /* ImageServicesTests.swift in Sources */,
+				C7B51B74B1597B385D91B30B /* PreviewSchedulingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C8C86C13681E76F8D1F7FA02 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F5F85DFEBD720CB71FBD7CDA /* AppServices.swift in Sources */,
+				6D04B58550578D759410FD4E /* CameraCaptureSheet.swift in Sources */,
+				35A0A0265EAF74EDF97B7990 /* EditSettings.swift in Sources */,
+				125A50B806A7E5598C87D27E /* EditorModel.swift in Sources */,
+				3318757138CB550CE33533E7 /* EditorView.swift in Sources */,
+				C4405A836C80656DDECA8F34 /* FaceSkinSmoother.swift in Sources */,
+				90A1CCC1CBCBBEF2AEDD5098 /* FilterRenderer.swift in Sources */,
+				6144916B53C0432866491AA4 /* ImageServices.swift in Sources */,
+				39784230204586139E1576DC /* JPEGImageDocument.swift in Sources */,
+				3BB722270FC9F517465D5CD7 /* PictureFilterApp.swift in Sources */,
+				98B109722F4AAF154BB9115E /* WelcomeView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		20EEBAE3387436018BE8E4CA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 45E7DC045EC11E2D747BCFF5 /* PictureFilterApp */;
+			targetProxy = 8D6CAE9BCCB3E8AE5F617E04 /* PBXContainerItemProxy */;
+		};
+		3C697D06B374BB68E5626E81 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 45E7DC045EC11E2D747BCFF5 /* PictureFilterApp */;
+			targetProxy = D5817386B6FC2CBB4E44E9C2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		077132319C50901B78C71444 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = HNNV36L639;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.PictureFilterAppTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PictureFilterApp.app/PictureFilterApp";
+			};
+			name = Release;
+		};
+		4F23D916DC9173B6D1D32C0F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = HNNV36L639;
+				INFOPLIST_KEY_CFBundleDisplayName = PictureFilterApp;
+				INFOPLIST_KEY_NSCameraUsageDescription = "촬영한 사진을 편집하기 위해 카메라를 사용합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "편집한 사진을 사진 보관함에 저장합니다.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.PictureFilterApp;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		8C6E5304DF3620924E15810F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		B2FEF00A6F1B129650C93AD8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		D946B63F8AB7C28ADB4E4A46 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = HNNV36L639;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.PictureFilterAppUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = PictureFilterApp;
+			};
+			name = Debug;
+		};
+		EF6DD2252CE7F36D040F2AEA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = HNNV36L639;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.PictureFilterAppTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/PictureFilterApp.app/PictureFilterApp";
+			};
+			name = Debug;
+		};
+		FAD1A404D8017F399AA34D17 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = HNNV36L639;
+				INFOPLIST_KEY_CFBundleDisplayName = PictureFilterApp;
+				INFOPLIST_KEY_NSCameraUsageDescription = "촬영한 사진을 편집하기 위해 카메라를 사용합니다.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "편집한 사진을 사진 보관함에 저장합니다.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.PictureFilterApp;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		FE07C3D3DBB6665C753EA118 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = HNNV36L639;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.local.PictureFilterAppUITests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = PictureFilterApp;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		258F94D87DDC960F5A0E431C /* Build configuration list for PBXNativeTarget "PictureFilterAppUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D946B63F8AB7C28ADB4E4A46 /* Debug */,
+				FE07C3D3DBB6665C753EA118 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		4662D25AD81D23ADDC5A63A1 /* Build configuration list for PBXNativeTarget "PictureFilterApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4F23D916DC9173B6D1D32C0F /* Debug */,
+				FAD1A404D8017F399AA34D17 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B3C22BE5FA9785C4E371E4E9 /* Build configuration list for PBXProject "PictureFilterApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B2FEF00A6F1B129650C93AD8 /* Debug */,
+				8C6E5304DF3620924E15810F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		C13FE13BE036668791A27423 /* Build configuration list for PBXNativeTarget "PictureFilterAppTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EF6DD2252CE7F36D040F2AEA /* Debug */,
+				077132319C50901B78C71444 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = D168F34820826690C70C2B3B /* Project object */;
+}
