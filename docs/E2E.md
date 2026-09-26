@@ -194,4 +194,11 @@ iPhone 16 Pro Max (iOS 26.6.2)에서 테스트용 합성 색상표를 편집해 
 - 실제 iOS Photos 접근을 `안 함`으로 변경했을 때 앱 저장이 권한 거부 상태를 표시하고, 설정에서 `사진 추가만`으로 되돌린 뒤 저장이 성공하는 전체 흐름이 통과했습니다: `.build/PF018-DeviceDerivedData/Logs/Test/Test-PictureFilterApp-2026.09.26_18-59-38-+0900.xcresult`. 테스트 종료 시 원래 권한 상태를 다시 저장 성공으로 확인했습니다.
 - 첫 선택 테스트는 시스템 선택기의 접근성 요소가 일반 컬렉션 셀이 아닌 이미지로 제공되는 점을 반영해 수정했고, 수정 후 실기기에서 통과했습니다.
 
+내장 드라이브 작업본에서도 iPhone 16 Pro Max (iOS 26.6.2)로 저장과 PhotosPicker 재선택을 각각 다시 실행해 1개씩 통과했습니다. 두 실행은 합성 색상표만 사용했으며 사용자 사진을 열지 않았습니다.
+
+- 저장 결과: `.build/PF018-InternalDeviceDerivedData/Logs/Test/Test-PictureFilterApp-2026.09.26_20-07-59-+0900.xcresult`.
+- PhotosPicker 재선택 결과: `.build/PF018-InternalDeviceDerivedData/Logs/Test/Test-PictureFilterApp-2026.09.26_20-08-55-+0900.xcresult`.
+
 실제 Photos 저장 권한을 거부한 뒤 설정에서 복구하는 OS 흐름과 iCloud 전용 사진의 오프라인 다운로드 실패는 아직 미검증입니다. 앱의 거부·실패 대역 테스트는 실기기에서 통과했지만 실제 OS/네트워크 검증을 대체하지 않으므로 PF-018은 계속 열어 둡니다.
+
+오프라인 검증은 Photos가 iCloud에서만 원본을 제공하는 합성 테스트 사진을 대상으로 해야 합니다. Apple은 `Optimize iPhone Storage`가 켜져도 저장 공간이 필요할 때 최적화를 진행한다고 설명하므로, 이 옵션을 켜는 것만으로 특정 사진의 원본이 기기에서 제거됐다고 단정할 수 없습니다. [Apple Support: iCloud Photos와 기기 저장 공간 최적화](https://support.apple.com/guide/iphone/sync-photos-videos-icloud/27/ios/27).
