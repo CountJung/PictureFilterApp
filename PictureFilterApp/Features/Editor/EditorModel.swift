@@ -17,8 +17,10 @@ final class EditorModel {
     private(set) var previewImage: UIImage?
     private(set) var isRendering = false
     private(set) var renderError: String?
+    private(set) var detectedFaceCount = 0
     private(set) var previewRevision = UUID()
     @ObservationIgnored private let renderer: any PreviewRendering
+    @ObservationIgnored private let faceCounter: (any FaceCounting)?
     @ObservationIgnored private let waitForQuiet: @Sendable () async throws -> Void
     @ObservationIgnored private var activeRender = UUID()
     @ObservationIgnored private var activeRequest = UUID()
@@ -29,6 +31,7 @@ final class EditorModel {
          }) {
         self.sample = sample
         self.renderer = renderer
+        self.faceCounter = renderer as? any FaceCounting
         self.waitForQuiet = waitForQuiet
     }
 
@@ -56,6 +59,22 @@ final class EditorModel {
         guard canEdit else { return }
         let previous = settings
         settings.setSkinSmoothing(value)
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
+    func selectSkinFace(_ index: Int?) {
+        guard canEdit, settings.selectedSkinFaceIndex != index else { return }
+        let previous = settings
+        settings.selectSkinFace(index)
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
+    func resetSelectedSkinSmoothing() {
+        guard canEdit else { return }
+        let previous = settings
+        settings.resetSelectedSkinSmoothing()
         guard previous != settings else { return }
         invalidatePreview()
     }
@@ -157,6 +176,7 @@ final class EditorModel {
         previewImage = nil
         originalData = nil
         originalImage = nil
+        detectedFaceCount = 0
         settings = EditSettings()
         return request
     }
@@ -168,6 +188,12 @@ final class EditorModel {
         originalImage = image
         phase = .ready
         invalidatePreview()
+        guard let faceCounter else { return }
+        Task { [weak self] in
+            let count = await faceCounter.faceCount(in: data)
+            guard let self, self.activeRequest == request else { return }
+            self.detectedFaceCount = count
+        }
     }
 
     private func failLoading(_ error: Error, request: UUID) {

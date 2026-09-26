@@ -228,12 +228,35 @@ struct EditorView: View {
             }
             VStack(alignment: .leading) {
                 Text("피부 보정")
-                Slider(value: Binding(get: { model.settings.skinSmoothing }, set: { model.setSkinSmoothing($0) }), in: 0...1)
+                if model.detectedFaceCount > 1 {
+                    Picker("보정 대상", selection: Binding<Int?>(
+                        get: { model.settings.selectedSkinFaceIndex },
+                        set: { model.selectSkinFace($0) }
+                    )) {
+                        Text("모든 인물").tag(Int?.none)
+                        ForEach(0..<model.detectedFaceCount, id: \.self) { index in
+                            Text("인물 \(index + 1)").tag(Int?.some(index))
+                        }
+                    }
+                    .accessibilityIdentifier("skinFacePicker")
+                    Text("사진에서 왼쪽에 있는 인물부터 번호를 붙입니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                } else if model.detectedFaceCount == 1 {
+                    Text("인물 1").font(.subheadline).foregroundStyle(.secondary)
+                } else if model.detectedFaceCount == 0 && model.canEdit {
+                    Text("인물을 찾지 못하면 원본을 유지합니다.").font(.footnote).foregroundStyle(.secondary)
+                }
+                Slider(value: Binding(get: { model.settings.activeSkinSmoothing }, set: { model.setSkinSmoothing($0) }), in: 0...1)
                     .disabled(!model.canEdit || isSaving || isShowingFileExporter)
                     .accessibilityLabel("피부 보정 강도")
                     .accessibilityIdentifier("skinSmoothingSlider")
-                Text(model.settings.skinSmoothing == 0 ? "얼굴을 자동 인식해 선택적으로 보정합니다." : "얼굴 피부 영역을 부드럽게 보정합니다.")
+                Text(model.settings.activeSkinSmoothing == 0 ? "얼굴 특징과 피부 질감을 보존하며 약하게 보정합니다." : "눈·눈썹·입을 보호해 인식된 피부 영역만 보정합니다.")
                     .font(.footnote).foregroundStyle(.secondary)
+                if model.settings.selectedSkinFaceIndex != nil {
+                    Button("이 인물 보정 초기화") { model.resetSelectedSkinSmoothing() }
+                        .disabled(!model.canEdit || isSaving || isShowingFileExporter)
+                        .accessibilityIdentifier("resetSelectedSkinSmoothing")
+                }
             }
         }
     }

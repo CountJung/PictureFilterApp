@@ -13,7 +13,11 @@ protocol OutputRendering: Sendable {
     func renderOutput(_ data: Data, settings: EditSettings, maxDimension: Int) async throws -> Data
 }
 
-actor FilterRenderer: PreviewRendering, OutputRendering {
+protocol FaceCounting: Sendable {
+    func faceCount(in data: Data) async -> Int
+}
+
+actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     private lazy var context = CIContext(options: [.workingColorSpace: colorSpace])
 
@@ -23,6 +27,22 @@ actor FilterRenderer: PreviewRendering, OutputRendering {
 
     func renderOutput(_ data: Data, settings: EditSettings, maxDimension: Int = 4096) throws -> Data {
         try render(data, settings: settings, maxDimension: maxDimension, jpegQuality: 0.9)
+    }
+
+    func faceCount(in data: Data) async -> Int {
+        guard let source = CGImageSourceCreateWithData(data as CFData, nil),
+              let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
+                kCGImageSourceCreateThumbnailFromImageAlways: true,
+                kCGImageSourceCreateThumbnailWithTransform: true,
+                kCGImageSourceThumbnailMaxPixelSize: 1000
+              ] as CFDictionary) else { return 0 }
+        let request = VNDetectFaceLandmarksRequest()
+        do {
+            try VNImageRequestHandler(cgImage: image, orientation: .up).perform([request])
+            return request.results?.count ?? 0
+        } catch {
+            return 0
+        }
     }
 
     private func render(_ data: Data, settings: EditSettings, maxDimension: Int, jpegQuality: CGFloat?) throws -> Data {
@@ -85,8 +105,11 @@ actor FilterRenderer: PreviewRendering, OutputRendering {
             guard let output = blend.outputImage else { throw ImageServiceError.invalidImage }
             result = output.cropped(to: original.extent)
         }
-        if settings.skinSmoothing > 0 {
-            result = try FaceSkinSmoother.apply(to: result, source: thumbnail, intensity: settings.skinSmoothing)
+        if settings.skinSmoothing > 0 || settings.faceSkinSmoothing.values.contains(where: { $0 > 0 }) {
+            result = try FaceSkinSmoother.apply(to: result, source: thumbnail,
+                                                allIntensity: settings.skinSmoothing,
+                                                faceIntensities: settings.faceSkinSmoothing,
+                                                selectedFaceIndex: settings.selectedSkinFaceIndex)
         }
         try Task.checkCancellation()
         if jpegQuality != nil {

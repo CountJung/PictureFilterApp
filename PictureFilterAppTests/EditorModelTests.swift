@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import PictureFilterApp
 
 @MainActor
@@ -74,6 +75,50 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(model.settings.skinSmoothing, 1)
         model.reset()
         XCTAssertEqual(model.settings.skinSmoothing, 0)
+    }
+
+    func testPersonSpecificSmoothingAndRestore() async {
+        var settings = EditSettings()
+        settings.setSkinSmoothing(0.6)
+        settings.selectSkinFace(1)
+        settings.setSkinSmoothing(0)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 0), 0.6)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0)
+        XCTAssertEqual(settings.activeSkinSmoothing, 0)
+        settings.resetSelectedSkinSmoothing()
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0.6)
+        settings.selectSkinFace(nil)
+        settings.setSkinSmoothing(0)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 0), 0)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0)
+    }
+
+    func testEditorDetectsMultiplePeopleInSyntheticImage() async throws {
+        let url = try XCTUnwrap(Bundle(for: EditorModelTests.self).url(forResource: "synthetic-face", withExtension: "jpg"))
+        let face = try XCTUnwrap(UIImage(data: Data(contentsOf: url))?.cgImage)
+        let canvas = CGSize(width: 1320, height: 660)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let pair = UIGraphicsImageRenderer(size: canvas, format: format).image { renderer in
+            UIColor.darkGray.setFill()
+            renderer.fill(CGRect(origin: .zero, size: canvas))
+            renderer.cgContext.draw(face, in: CGRect(x: 0, y: 0, width: 620, height: 620))
+            renderer.cgContext.draw(face, in: CGRect(x: 700, y: 0, width: 620, height: 620))
+        }
+        let model = EditorModel(sample: SampleImage.catalog[0])
+        model.load(try XCTUnwrap(pair.jpegData(compressionQuality: 1)), title: "합성 인물 두 명")
+        for _ in 0..<100 where model.detectedFaceCount != 2 {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(model.detectedFaceCount, 2)
+        let revision = model.previewRevision
+        model.selectSkinFace(1)
+        model.setSkinSmoothing(0.8)
+        XCTAssertEqual(model.settings.selectedSkinFaceIndex, 1)
+        XCTAssertEqual(model.settings.activeSkinSmoothing, 0.8)
+        XCTAssertNotEqual(model.previewRevision, revision)
+        model.resetSelectedSkinSmoothing()
+        XCTAssertEqual(model.settings.activeSkinSmoothing, 0)
     }
 
     func testOlderInputCannotOverwriteNewPhoto() async throws {

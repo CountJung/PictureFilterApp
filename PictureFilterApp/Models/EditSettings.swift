@@ -24,6 +24,13 @@ struct EditSettings: Equatable, Sendable {
     private(set) var filter: PhotoFilter = .original
     private(set) var intensity: Double = 0.5
     private(set) var skinSmoothing: Double = 0
+    private(set) var selectedSkinFaceIndex: Int?
+    private(set) var faceSkinSmoothing: [Int: Double] = [:]
+
+    var activeSkinSmoothing: Double {
+        guard let selectedSkinFaceIndex else { return skinSmoothing }
+        return faceSkinSmoothing[selectedSkinFaceIndex] ?? skinSmoothing
+    }
 
     mutating func select(_ filter: PhotoFilter) { self.filter = filter }
     mutating func setIntensity(_ value: Double) {
@@ -33,6 +40,32 @@ struct EditSettings: Equatable, Sendable {
 
     mutating func setSkinSmoothing(_ value: Double) {
         guard value.isFinite else { return }
-        skinSmoothing = min(1, max(0, value))
+        let clamped = min(1, max(0, value))
+        if let selectedSkinFaceIndex {
+            if clamped == skinSmoothing {
+                faceSkinSmoothing.removeValue(forKey: selectedSkinFaceIndex)
+            } else {
+                faceSkinSmoothing[selectedSkinFaceIndex] = clamped
+            }
+        } else {
+            skinSmoothing = clamped
+        }
+    }
+
+    mutating func selectSkinFace(_ index: Int?) {
+        selectedSkinFaceIndex = index.map { max(0, $0) }
+    }
+
+    func skinSmoothing(forFaceAt index: Int) -> Double {
+        faceSkinSmoothing[index] ?? skinSmoothing
+    }
+
+    mutating func resetSelectedSkinSmoothing() {
+        guard let selectedSkinFaceIndex else {
+            skinSmoothing = 0
+            faceSkinSmoothing.removeAll()
+            return
+        }
+        faceSkinSmoothing.removeValue(forKey: selectedSkinFaceIndex)
     }
 }

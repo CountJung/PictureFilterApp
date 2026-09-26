@@ -74,6 +74,16 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.sliders["skinSmoothingSlider"].exists)
     }
 
+    func testPortraitControlKeepsOriginalWhenNoFaceIsDetected() {
+        let app = XCUIApplication()
+        app.launch()
+        app.buttons["start-sample-landscape"].tap()
+        XCTAssertTrue(app.images["imagePreview"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["인물을 찾지 못하면 원본을 유지합니다."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.pickers["skinFacePicker"].exists)
+        XCTAssertTrue(app.sliders["skinSmoothingSlider"].exists)
+    }
+
     func testCameraReportsUnavailableOnSimulator() {
         let app = XCUIApplication()
         app.launch()

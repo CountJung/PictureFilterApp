@@ -77,6 +77,50 @@ final class FilterRendererTests: XCTestCase {
         return totals.map { $0 / Double(count) }
     }
 
+    private func portraitPairFixture() throws -> Data {
+        let url = try XCTUnwrap(Bundle(for: FilterRendererTests.self).url(forResource: "synthetic-face", withExtension: "jpg"))
+        let face = try XCTUnwrap(UIImage(data: Data(contentsOf: url))?.cgImage)
+        let canvas = CGSize(width: 1320, height: 660)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let image = UIGraphicsImageRenderer(size: canvas, format: format).image { renderer in
+            UIColor(red: 0.18, green: 0.18, blue: 0.18, alpha: 1).setFill()
+            renderer.fill(CGRect(origin: .zero, size: canvas))
+            renderer.cgContext.draw(face, in: CGRect(x: 0, y: 0, width: 620, height: 620))
+            renderer.cgContext.draw(face, in: CGRect(x: 700, y: 0, width: 620, height: 620))
+        }
+        return try XCTUnwrap(image.jpegData(compressionQuality: 1))
+    }
+
+    private func meanDifference(_ first: Data, _ second: Data, xRange: Range<Int>) throws -> Double {
+        let a = try XCTUnwrap(UIImage(data: first)?.cgImage)
+        let b = try XCTUnwrap(UIImage(data: second)?.cgImage)
+        XCTAssertEqual(a.width, b.width)
+        XCTAssertEqual(a.height, b.height)
+        var aBytes = [UInt8](repeating: 0, count: a.width * a.height * 4)
+        var bBytes = [UInt8](repeating: 0, count: b.width * b.height * 4)
+        func draw(_ image: CGImage, into bytes: inout [UInt8]) throws {
+            try bytes.withUnsafeMutableBytes { buffer in
+                let context = try XCTUnwrap(CGContext(data: buffer.baseAddress, width: image.width, height: image.height,
+                    bitsPerComponent: 8, bytesPerRow: image.width * 4, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                    bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+                context.draw(image, in: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+            }
+        }
+        try draw(a, into: &aBytes)
+        try draw(b, into: &bBytes)
+        var total = 0
+        var pixels = 0
+        for y in 0..<a.height {
+            for x in xRange {
+                let offset = (y * a.width + x) * 4
+                for channel in 0..<3 { total += abs(Int(aBytes[offset + channel]) - Int(bBytes[offset + channel])) }
+                pixels += 3
+            }
+        }
+        return Double(total) / Double(pixels)
+    }
+
     func testZeroStrengthMatchesOriginalForEveryFilter() async throws {
         let input = try await BundleSampleInput().load(SampleImage.catalog[0])
         let renderer = FilterRenderer()
@@ -233,6 +277,27 @@ final class FilterRendererTests: XCTestCase {
         value.setSkinSmoothing(0.8)
         let output = try await FilterRenderer().render(input, settings: value)
         XCTAssertNotNil(UIImage(data: output))
+    }
+
+    func testPersonSelectionSmoothsOnlySelectedSyntheticPortrait() async throws {
+        let input = try portraitPairFixture()
+        let renderer = FilterRenderer()
+        let faceCount = await renderer.faceCount(in: input)
+        XCTAssertEqual(faceCount, 2)
+
+        var selectedLeft = EditSettings()
+        selectedLeft.selectSkinFace(0)
+        selectedLeft.setSkinSmoothing(1)
+        let leftOutput = try await renderer.render(input, settings: selectedLeft, maxDimension: 1600)
+        XCTAssertGreaterThan(try meanDifference(input, leftOutput, xRange: 0..<620), 0.01)
+        XCTAssertEqual(try meanDifference(input, leftOutput, xRange: 700..<1320), 0, accuracy: 0.001)
+
+        var selectedRight = EditSettings()
+        selectedRight.selectSkinFace(1)
+        selectedRight.setSkinSmoothing(1)
+        let rightOutput = try await renderer.render(input, settings: selectedRight, maxDimension: 1600)
+        XCTAssertEqual(try meanDifference(input, rightOutput, xRange: 0..<620), 0, accuracy: 0.001)
+        XCTAssertGreaterThan(try meanDifference(input, rightOutput, xRange: 700..<1320), 0.01)
     }
 
     func testHighResolutionOutputPreservesDimensionsAndChartColors() async throws {

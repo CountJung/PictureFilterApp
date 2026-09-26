@@ -4,21 +4,6 @@
 
 ## 다음 작업
 
-### 인물 보정
-
-<a id="pf-024"></a>
-
-- [ ] **PF-024 · 인물별 선택형 자연 보정**
-
-  **상태: 미착수** · 우선순위: P1
-
-  - **할 일 / 완료 조건:** 여러 인물 중 대상을 고르고 피부를 선택 보정하며, 눈·입·머리카락과 피부 질감을 보존하고 보정 일부를 되돌리는 흐름 구현
-  - **선행 작업:** [PF-023](TASKS_ARCHIVE.md#pf-023)
-  - **참고 자료:** [Adobe 인물 마스킹 및 잡티 보정](https://helpx.adobe.com/uk/lightroom/web/edit-photos/apply-masks/mask-with-ai.html), [Adobe Lightroom 모바일 인물 잡티 보정](https://helpx.adobe.com/lightroom/mobile/apply-quick-actions/remove-blemishes-using-quick-actions.html)
-  - **설계 문서:** [ARCHITECTURE](ARCHITECTURE.md), [DECISIONS](DECISIONS.md), [E2E](E2E.md)
-  - **담당 / 갱신일:** — / 2026-09-26
-  - **완료 조건:** 인물별 적용 여부·강도 조절·원본 비교·초기화 및 마스크 실패 시 원본 보존을 테스트하고, 합성 테스트와 실제 인물 사진에서 경계와 질감 보존을 확인. 얼굴형 변경이나 과도한 미백은 범위에서 제외.
-
 ### 후속 후보
 
 <a id="pf-025"></a>
@@ -38,3 +23,5 @@
 
 - 2026-09-26 · PF-001~PF-017, PF-020~PF-021의 완료 항목과 전체 진행 이력을 [TASKS_ARCHIVE](TASKS_ARCHIVE.md)로 이동. 열린 항목만 이 문서에 남김.
 - 2026-09-26 · PF-022~PF-025: 제품 방향과 첫 네 스타일을 확정하고, 인물별 보정을 구현 항목으로 남김. 공개 제품에서 확인한 인물 조명·배경 흐림은 별도 후속 작업으로 분리.
+- 2026-09-26 · PF-024 조사 보강: 사람별 보정·복원·초기화와 피부 질감 조절 자료, Apple Vision 개별 인물 마스크를 확인. 조사 결과와 적용 범위는 [DECISIONS](DECISIONS.md)에 기록.
+- 2026-09-26 · PF-024 완료: 인물별 보정·부분 초기화와 마스크 보호, 기기 테스트 및 CC0 실제 인물 사진 리뷰 완료. 상세·근거는 [보관소](TASKS_ARCHIVE.md#pf-024), [E2E](E2E.md#pf-024-인물별-자연-보정-검증)에 기록.

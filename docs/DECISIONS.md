@@ -75,6 +75,20 @@ Core Image를 사용합니다. 흑백은 CIColorControls의 saturation=0, 세피
 
 참고한 공개 자료: [Adobe Lightroom 프리셋](https://helpx.adobe.com/lightroom/desktop/edit-photos/presets.html), [Adobe 인물 마스킹](https://helpx.adobe.com/uk/lightroom/web/edit-photos/apply-masks/mask-with-ai.html), [Apple 인물 사진 조명·심도](https://support.apple.com/guide/iphone/take-portraits-iphd7d3a91a2/27/ios/27), [Google Photos 인물 조명·흐림](https://blog.google/products-and-platforms/products/photos/google-ai-photo-editing-features-tips/).
 
+## PF-024 · 공개 자료 조사 — 2026-09-26
+
+공유된 네이버 블로그는 열람할 수 없어 제품 요구 근거로 사용하지 않습니다. 현재 작업 문서와 코드에는 해당 블로그 링크가 남아 있지 않음을 확인했습니다. 대신 공식 제품·개발자 문서와 공개 구현 예시를 살펴 PF-024 설계에 적용할 기준을 정리했습니다.
+
+- **사람별 선택·복원 UX:** Lightroom 모바일은 여러 사람 중 한 명 또는 전체를 선택하고, 피부 보정을 켜고 끄며, Remove/Restore와 선택 인물별 또는 전체 초기화를 제공합니다. PF-024도 대상별 설정과 부분 복원을 제공해야 합니다.
+- **피부 질감:** Lightroom의 Texture 조절은 색조와 밝기를 바꾸지 않고 미세 질감을 다룹니다. 그러므로 단순 Gaussian blur 강도만 키우지 말고 피부 질감 유지와 자연스러운 가장자리 혼합을 검증합니다.
+- **온디바이스 분리:** Apple Vision의 얼굴 랜드마크는 눈·눈썹·입·얼굴 외곽을 제공합니다. Vision의 사람 인스턴스 분할은 별도 API로 최대 네 명의 개별 마스크와 신뢰도를 제공하지만, 현재 PF-024는 좌우 순으로 정렬한 얼굴 랜드마크를 사용해 대상을 선택하고 얼굴 영역만 보정합니다. 인스턴스 분할은 머리카락·몸을 포함하는 조명·배경 효과 후보로 남깁니다. 얼굴 검출 실패 시에는 원본을 보존합니다.
+- **공개 구현 참고:** MIT 라이선스의 YUCIHighPassSkinSmoothing은 Core Image에서 고주파 기반 마스크, 마스크 블렌딩, 세부 보존 파라미터를 설명합니다. 바로 의존성을 추가하지 않고 현재 렌더러에 유효한 개념과 성능·라이선스 영향을 검토합니다.
+- **공개 스킬 참고:** GitHub의 `photo-retouch-pro`는 사진 분석·편집을 지시하는 공개 `SKILL.md`이며, 자체 iOS 렌더링 코드나 온디바이스 얼굴 마스크 모델은 제공하지 않습니다. 설치된 Adobe `adobe-retouch-portraits` 스킬도 Adobe 도구로 사진 파일을 배치 보정하는 작업 흐름이므로 앱 기능 구현에 직접 포함하지 않습니다. 두 스킬은 결과 평가 기준과 편집 UX의 참고 자료로만 취급합니다.
+
+이 조사는 기능 범위와 테스트 관점을 보강할 뿐, 외부 사진 업로드·얼굴 형태 변경·강제 미백·생성형 얼굴 편집을 허용하지 않습니다.
+
+참고 자료: [Adobe Lightroom 모바일 인물 잡티 보정](https://helpx.adobe.com/lightroom/mobile/apply-quick-actions/remove-blemishes-using-quick-actions.html), [Adobe Lightroom Texture 조절](https://helpx.adobe.com/in/lightroom-cc/using/edit-photos-mobile-ios.html), [Apple Vision 얼굴 랜드마크](https://developer.apple.com/documentation/vision/vnfacelandmarks2d/facecontour), [Apple WWDC23 개별 인물 마스크](https://developer.apple.com/videos/play/wwdc2023/111241/), [YUCIHighPassSkinSmoothing (MIT)](https://github.com/YuAo/YUCIHighPassSkinSmoothing), [photo-retouch-pro 공개 스킬](https://github.com/qzfcoder/photo-retouch-pro/blob/main/SKILL.md).
+
 
 ## PF-017에서 결정할 항목 — 2026-09-26
 
