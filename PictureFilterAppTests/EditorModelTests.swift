@@ -86,7 +86,7 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0)
         XCTAssertEqual(settings.activeSkinSmoothing, 0)
         settings.resetSelectedSkinSmoothing()
-        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0.6)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0)
         settings.selectSkinFace(nil)
         settings.setSkinSmoothing(0)
         XCTAssertEqual(settings.skinSmoothing(forFaceAt: 0), 0)
@@ -103,7 +103,7 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(settings.portraitLight(forFaceAt: 1), 0.8)
         XCTAssertEqual(settings.backgroundBlur, 1)
         settings.resetSelectedPortraitEffects()
-        XCTAssertEqual(settings.activePortraitLight, 0.4)
+        XCTAssertEqual(settings.activePortraitLight, 0)
         settings.setBackgroundBlur(.nan)
         XCTAssertEqual(settings.backgroundBlur, 1)
         settings.selectSkinFace(nil)
@@ -111,6 +111,54 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(settings.portraitLight, 0)
         XCTAssertEqual(settings.facePortraitLight, [:])
         XCTAssertEqual(settings.backgroundBlur, 1)
+    }
+
+    func testAllPeopleAdjustmentReplacesOnlyTheCorrespondingIndividualValues() {
+        var settings = EditSettings()
+        settings.setSkinSmoothing(0.6)
+        settings.setPortraitLight(0.4)
+        settings.selectSkinFace(0)
+        settings.resetSelectedSkinSmoothing()
+        settings.resetSelectedPortraitEffects()
+        settings.selectSkinFace(1)
+        settings.setSkinSmoothing(0.8)
+        settings.setPortraitLight(0.9)
+        settings.selectSkinFace(nil)
+        // Reapplying even the same global value deliberately replaces overrides.
+        settings.setSkinSmoothing(0.6)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 0), 0.6)
+        XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0.6)
+        XCTAssertEqual(settings.portraitLight(forFaceAt: 0), 0)
+        XCTAssertEqual(settings.portraitLight(forFaceAt: 1), 0.9)
+        settings.setPortraitLight(0.4)
+        XCTAssertEqual(settings.portraitLight(forFaceAt: 0), 0.4)
+        XCTAssertEqual(settings.portraitLight(forFaceAt: 1), 0.4)
+        XCTAssertTrue(settings.faceSkinSmoothing.isEmpty)
+        XCTAssertTrue(settings.facePortraitLight.isEmpty)
+    }
+
+    func testSelectingEditingTargetDoesNotInvalidatePreviewAndResetOnlyChangesTarget() async {
+        let model = EditorModel(sample: SampleImage.catalog[0])
+        await model.load(SampleImage.catalog[0], using: BundleSampleInput())
+        model.setSkinSmoothing(0.6)
+        model.setPortraitLight(0.4)
+        model.setBackgroundBlur(0.3)
+        let revision = model.previewRevision
+        model.selectSkinFace(0)
+        model.selectSkinFace(1)
+        model.selectSkinFace(nil)
+        XCTAssertEqual(model.previewRevision, revision)
+        model.selectSkinFace(0)
+        model.resetSelectedSkinSmoothing()
+        model.resetSelectedPortraitEffects()
+        XCTAssertNotEqual(model.previewRevision, revision)
+        XCTAssertEqual(model.settings.skinSmoothing(forFaceAt: 0), 0)
+        XCTAssertEqual(model.settings.portraitLight(forFaceAt: 0), 0)
+        XCTAssertEqual(model.settings.skinSmoothing(forFaceAt: 1), 0.6)
+        XCTAssertEqual(model.settings.portraitLight(forFaceAt: 1), 0.4)
+        XCTAssertEqual(model.settings.backgroundBlur, 0.3)
+        model.reset()
+        XCTAssertEqual(model.settings, EditSettings())
     }
 
     func testEditorDetectsMultiplePeopleInSyntheticImage() async throws {

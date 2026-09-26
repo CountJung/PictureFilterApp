@@ -247,6 +247,10 @@ struct EditorView: View {
                 } else if model.detectedFaceCount == 0 && model.canEdit {
                     Text("인물을 찾지 못하면 원본을 유지합니다.").font(.footnote).foregroundStyle(.secondary)
                 }
+                Text(model.settings.selectedSkinFaceIndex == nil
+                     ? "전체 강도를 바꾸면 모든 인물의 피부 보정에 같은 값이 적용됩니다."
+                     : "선택한 인물의 피부 보정만 바꿉니다. 다른 인물의 보정은 유지됩니다.")
+                    .font(.footnote).foregroundStyle(.secondary)
                 Slider(value: Binding(get: { model.settings.activeSkinSmoothing }, set: { model.setSkinSmoothing($0) }), in: 0...1)
                     .disabled(!model.canEdit || isSaving || isShowingFileExporter)
                     .accessibilityLabel("피부 보정 강도")
@@ -254,7 +258,7 @@ struct EditorView: View {
                 Text(model.settings.activeSkinSmoothing == 0 ? "얼굴 특징과 피부 질감을 보존하며 약하게 보정합니다." : "눈·눈썹·입을 보호해 인식된 피부 영역만 보정합니다.")
                     .font(.footnote).foregroundStyle(.secondary)
                 if model.settings.selectedSkinFaceIndex != nil {
-                    Button("이 인물 보정 초기화") { model.resetSelectedSkinSmoothing() }
+                    Button("이 인물 피부 보정 끄기") { model.resetSelectedSkinSmoothing() }
                         .disabled(!model.canEdit || isSaving || isShowingFileExporter)
                         .accessibilityIdentifier("resetSelectedSkinSmoothing")
                 }
@@ -266,7 +270,9 @@ struct EditorView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("인물 조명과 배경 깊이")
                 .font(.headline)
-            Text("인물 조명은 위에서 고른 얼굴에 적용됩니다.")
+            Text(model.settings.selectedSkinFaceIndex == nil
+                 ? "전체 강도를 바꾸면 모든 인물의 조명에 같은 값이 적용됩니다."
+                 : "선택한 인물의 조명만 바꿉니다. 다른 인물의 보정은 유지됩니다.")
                 .font(.footnote).foregroundStyle(.secondary)
             VStack(alignment: .leading) {
                 Text("인물 조명")
@@ -278,7 +284,7 @@ struct EditorView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if model.settings.selectedSkinFaceIndex != nil {
-                Button("이 인물 조명 초기화") { model.resetSelectedPortraitEffects() }
+                Button("이 인물 조명 끄기") { model.resetSelectedPortraitEffects() }
                     .disabled(!model.canEdit || isSaving || isShowingFileExporter)
                     .accessibilityIdentifier("resetSelectedPortraitLight")
             }

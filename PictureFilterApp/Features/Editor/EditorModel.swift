@@ -80,11 +80,9 @@ final class EditorModel {
     }
 
     func selectSkinFace(_ index: Int?) {
-        guard canEdit, settings.selectedSkinFaceIndex != index else { return }
-        let previous = settings
+        guard canEdit else { return }
+        // Selecting an editing target does not change the rendered photograph.
         settings.selectSkinFace(index)
-        guard previous != settings else { return }
-        invalidatePreview()
     }
 
     func resetSelectedSkinSmoothing() {

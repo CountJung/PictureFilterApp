@@ -108,14 +108,12 @@ actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
         if settings.skinSmoothing > 0 || settings.faceSkinSmoothing.values.contains(where: { $0 > 0 }) {
             result = try FaceSkinSmoother.apply(to: result, source: thumbnail,
                                                 allIntensity: settings.skinSmoothing,
-                                                faceIntensities: settings.faceSkinSmoothing,
-                                                selectedFaceIndex: settings.selectedSkinFaceIndex)
+                                                faceIntensities: settings.faceSkinSmoothing)
         }
         if settings.portraitLight > 0 || settings.facePortraitLight.values.contains(where: { $0 > 0 }) {
             result = PortraitEffects.applyLighting(to: result, source: thumbnail,
                                                    allIntensity: settings.portraitLight,
-                                                   faceIntensities: settings.facePortraitLight,
-                                                   selectedFaceIndex: settings.selectedSkinFaceIndex)
+                                                   faceIntensities: settings.facePortraitLight)
         }
         if settings.backgroundBlur > 0 {
             result = PortraitEffects.applyBackgroundBlur(to: result, source: thumbnail,

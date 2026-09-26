@@ -57,6 +57,7 @@ struct EditSettings: Equatable, Sendable {
             }
         } else {
             skinSmoothing = clamped
+            faceSkinSmoothing.removeAll()
         }
     }
 
@@ -74,7 +75,8 @@ struct EditSettings: Equatable, Sendable {
             faceSkinSmoothing.removeAll()
             return
         }
-        faceSkinSmoothing.removeValue(forKey: selectedSkinFaceIndex)
+        // A reset explicitly opts this face out of a nonzero global value.
+        faceSkinSmoothing[selectedSkinFaceIndex] = 0
     }
 
     mutating func setPortraitLight(_ value: Double) {
@@ -88,6 +90,7 @@ struct EditSettings: Equatable, Sendable {
             }
         } else {
             portraitLight = clamped
+            facePortraitLight.removeAll()
         }
     }
 
@@ -106,6 +109,6 @@ struct EditSettings: Equatable, Sendable {
             facePortraitLight.removeAll()
             return
         }
-        facePortraitLight.removeValue(forKey: selectedSkinFaceIndex)
+        facePortraitLight[selectedSkinFaceIndex] = 0
     }
 }

@@ -6,7 +6,7 @@ import Vision
 /// leaves the eyes and mouth clear; images without a detected face pass through.
 enum FaceSkinSmoother {
     static func apply(to image: CIImage, source: CGImage, allIntensity: Double,
-                      faceIntensities: [Int: Double], selectedFaceIndex: Int?) throws -> CIImage {
+                      faceIntensities: [Int: Double]) throws -> CIImage {
         guard allIntensity > 0 || faceIntensities.values.contains(where: { $0 > 0 }) else { return image }
         let request = VNDetectFaceLandmarksRequest()
         do {
@@ -19,8 +19,7 @@ enum FaceSkinSmoother {
         let faces = (request.results ?? []).sorted { $0.boundingBox.midX < $1.boundingBox.midX }
         guard !faces.isEmpty,
               let mask = makeMask(faces: faces, width: source.width, height: source.height,
-                                  allIntensity: allIntensity, faceIntensities: faceIntensities,
-                                  selectedFaceIndex: selectedFaceIndex) else { return image }
+                                  allIntensity: allIntensity, faceIntensities: faceIntensities) else { return image }
 
         let extent = image.extent
         let blurred = image.clampedToExtent()
@@ -39,8 +38,7 @@ enum FaceSkinSmoother {
     }
 
     private static func makeMask(faces: [VNFaceObservation], width: Int, height: Int,
-                                 allIntensity: Double, faceIntensities: [Int: Double],
-                                 selectedFaceIndex: Int?) -> CGImage? {
+                                 allIntensity: Double, faceIntensities: [Int: Double]) -> CGImage? {
         guard width > 0, height > 0,
               let context = CGContext(data: nil, width: width, height: height,
                                       bitsPerComponent: 8, bytesPerRow: width,
@@ -49,8 +47,7 @@ enum FaceSkinSmoother {
         context.setFillColor(gray: 0, alpha: 1)
         context.fill(CGRect(x: 0, y: 0, width: width, height: height))
         for (index, face) in faces.enumerated() {
-            if let selectedFaceIndex, selectedFaceIndex != index { continue }
-            let intensity = selectedFaceIndex == nil ? allIntensity : (faceIntensities[index] ?? allIntensity)
+            let intensity = faceIntensities[index] ?? allIntensity
             guard intensity > 0, let landmarks = face.landmarks else { continue }
             let box = face.boundingBox
             let rect = CGRect(x: box.minX * CGFloat(width), y: box.minY * CGFloat(height),

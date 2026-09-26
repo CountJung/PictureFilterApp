@@ -320,6 +320,66 @@ final class FilterRendererTests: XCTestCase {
         XCTAssertLessThan(try meanDifference(original, lit, xRange: 680..<1310), 0.01)
     }
 
+    func testBothPeopleKeepTheirEditsAcrossSelectionInPreviewAndExport() async throws {
+        let input = try portraitPairFixture()
+        let renderer = FilterRenderer()
+        let faceCount = await renderer.faceCount(in: input)
+        XCTAssertEqual(faceCount, 2, "This regression requires real Vision inference.")
+        for lighting in [false, true] {
+            var settings = EditSettings()
+            settings.selectSkinFace(0)
+            if lighting { settings.setPortraitLight(0.8) } else { settings.setSkinSmoothing(0.8) }
+            settings.selectSkinFace(1)
+            if lighting { settings.setPortraitLight(0.4) } else { settings.setSkinSmoothing(0.4) }
+            for exporting in [false, true] {
+                func render(_ value: EditSettings) async throws -> Data {
+                    if exporting { return try await renderer.renderOutput(input, settings: value, maxDimension: 4096) }
+                    return try await renderer.render(input, settings: value, maxDimension: 1600)
+                }
+                let original = try await render(EditSettings())
+                let both = try await render(settings)
+                // This is a preservation regression, not a minimum-strength quality test.
+                // Weak smoothing can change very few JPEG pixels, but must not vanish.
+                XCTAssertGreaterThan(try meanDifference(original, both, xRange: 25..<620), 0)
+                XCTAssertGreaterThan(try meanDifference(original, both, xRange: 700..<1310), 0)
+                for selected: Int? in [0, 1, nil] {
+                    settings.selectSkinFace(selected)
+                    let output = try await render(settings)
+                    XCTAssertEqual(output, both, "Changing selection must not change preview or export.")
+                }
+            }
+        }
+    }
+
+    func testIndividualResetRestoresOnlyThatPersonDespiteNonzeroGlobalStrength() async throws {
+        let input = try portraitPairFixture()
+        let renderer = FilterRenderer()
+        for lighting in [false, true] {
+            var settings = EditSettings()
+            if lighting { settings.setPortraitLight(0.6) } else { settings.setSkinSmoothing(0.6) }
+            let allPeople = settings
+            settings.selectSkinFace(0)
+            if lighting { settings.resetSelectedPortraitEffects() } else { settings.resetSelectedSkinSmoothing() }
+            var rightOnly = EditSettings()
+            rightOnly.selectSkinFace(1)
+            if lighting { rightOnly.setPortraitLight(0.6) } else { rightOnly.setSkinSmoothing(0.6) }
+            for exporting in [false, true] {
+                func render(_ value: EditSettings) async throws -> Data {
+                    if exporting { return try await renderer.renderOutput(input, settings: value, maxDimension: 4096) }
+                    return try await renderer.render(input, settings: value, maxDimension: 1600)
+                }
+                let original = try await render(EditSettings())
+                let both = try await render(allPeople)
+                let reset = try await render(settings)
+                let expected = try await render(rightOnly)
+                XCTAssertEqual(reset, expected)
+                XCTAssertEqual(try meanDifference(original, reset, xRange: 25..<620), 0, accuracy: 0.001)
+                XCTAssertEqual(try meanDifference(both, reset, xRange: 700..<1310), 0, accuracy: 0.001)
+                XCTAssertGreaterThan(try meanDifference(original, reset, xRange: 700..<1310), 0.01)
+            }
+        }
+    }
+
     func testBackgroundBlurUsesOnDevicePersonMask() async throws {
         let input = try portraitPairFixture()
         var settings = EditSettings()

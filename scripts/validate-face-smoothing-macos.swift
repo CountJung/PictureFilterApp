@@ -25,7 +25,7 @@ struct FaceSmoothingValidation {
         }
 
         let input = CIImage(cgImage: original)
-        let output = try FaceSkinSmoother.apply(to: input, source: original, intensity: 0.8)
+        let output = try FaceSkinSmoother.apply(to: input, source: original, allIntensity: 0.8, faceIntensities: [:])
         let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
         let context = CIContext(options: [.workingColorSpace: colorSpace])
         guard let rendered = context.createCGImage(output, from: input.extent, format: .RGBA8, colorSpace: colorSpace),
