@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		124396CB2DF3063BD364B1BF /* PortraitEffects.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6815CBF3F02F71DD62CB70EE /* PortraitEffects.swift */; };
 		125A50B806A7E5598C87D27E /* EditorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0181DB74005BF6D1ED1DB5E0 /* EditorModel.swift */; };
 		1E66CCB717213FEE056C6BE7 /* LaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9137561C2ECF86746769B9AB /* LaunchTests.swift */; };
 		3318757138CB550CE33533E7 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6024DDFCAA974774DC0CC836 /* EditorView.swift */; };
@@ -59,6 +60,7 @@
 		53D70EA59F0F207B273E0A9E /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		6024DDFCAA974774DC0CC836 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		63DBAA8A31BFFD0E9D2E5BDB /* EditorModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorModelTests.swift; sourceTree = "<group>"; };
+		6815CBF3F02F71DD62CB70EE /* PortraitEffects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortraitEffects.swift; sourceTree = "<group>"; };
 		731B36E0EDBEF036D3435BDF /* ImageServicesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageServicesTests.swift; sourceTree = "<group>"; };
 		797656E7AF2BD3EAABF29066 /* FilterRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRenderer.swift; sourceTree = "<group>"; };
 		87EB3310E169B26C35B2A303 /* FilterRendererTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterRendererTests.swift; sourceTree = "<group>"; };
@@ -195,6 +197,7 @@
 			children = (
 				DEFA89E770A38977911D3C9D /* FaceSkinSmoother.swift */,
 				797656E7AF2BD3EAABF29066 /* FilterRenderer.swift */,
+				6815CBF3F02F71DD62CB70EE /* PortraitEffects.swift */,
 			);
 			path = Rendering;
 			sourceTree = "<group>";
@@ -376,6 +379,7 @@
 				6144916B53C0432866491AA4 /* ImageServices.swift in Sources */,
 				39784230204586139E1576DC /* JPEGImageDocument.swift in Sources */,
 				3BB722270FC9F517465D5CD7 /* PictureFilterApp.swift in Sources */,
+				124396CB2DF3063BD364B1BF /* PortraitEffects.swift in Sources */,
 				98B109722F4AAF154BB9115E /* WelcomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

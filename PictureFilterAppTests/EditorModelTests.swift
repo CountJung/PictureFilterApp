@@ -93,6 +93,26 @@ final class EditorModelTests: XCTestCase {
         XCTAssertEqual(settings.skinSmoothing(forFaceAt: 1), 0)
     }
 
+    func testPortraitLightCanBeAdjustedPerPersonAndBackgroundBlurResets() {
+        var settings = EditSettings()
+        settings.setPortraitLight(0.4)
+        settings.selectSkinFace(1)
+        settings.setPortraitLight(0.8)
+        settings.setBackgroundBlur(2)
+        XCTAssertEqual(settings.portraitLight(forFaceAt: 0), 0.4)
+        XCTAssertEqual(settings.portraitLight(forFaceAt: 1), 0.8)
+        XCTAssertEqual(settings.backgroundBlur, 1)
+        settings.resetSelectedPortraitEffects()
+        XCTAssertEqual(settings.activePortraitLight, 0.4)
+        settings.setBackgroundBlur(.nan)
+        XCTAssertEqual(settings.backgroundBlur, 1)
+        settings.selectSkinFace(nil)
+        settings.resetSelectedPortraitEffects()
+        XCTAssertEqual(settings.portraitLight, 0)
+        XCTAssertEqual(settings.facePortraitLight, [:])
+        XCTAssertEqual(settings.backgroundBlur, 1)
+    }
+
     func testEditorDetectsMultiplePeopleInSyntheticImage() async throws {
         let url = try XCTUnwrap(Bundle(for: EditorModelTests.self).url(forResource: "synthetic-face", withExtension: "jpg"))
         let face = try XCTUnwrap(UIImage(data: Data(contentsOf: url))?.cgImage)

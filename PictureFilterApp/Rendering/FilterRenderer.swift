@@ -111,6 +111,16 @@ actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
                                                 faceIntensities: settings.faceSkinSmoothing,
                                                 selectedFaceIndex: settings.selectedSkinFaceIndex)
         }
+        if settings.portraitLight > 0 || settings.facePortraitLight.values.contains(where: { $0 > 0 }) {
+            result = PortraitEffects.applyLighting(to: result, source: thumbnail,
+                                                   allIntensity: settings.portraitLight,
+                                                   faceIntensities: settings.facePortraitLight,
+                                                   selectedFaceIndex: settings.selectedSkinFaceIndex)
+        }
+        if settings.backgroundBlur > 0 {
+            result = PortraitEffects.applyBackgroundBlur(to: result, source: thumbnail,
+                                                        intensity: settings.backgroundBlur)
+        }
         try Task.checkCancellation()
         if jpegQuality != nil {
             let background = CIImage(color: .white).cropped(to: result.extent)

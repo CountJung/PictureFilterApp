@@ -89,6 +89,16 @@ Core Image를 사용합니다. 흑백은 CIColorControls의 saturation=0, 세피
 
 참고 자료: [Adobe Lightroom 모바일 인물 잡티 보정](https://helpx.adobe.com/lightroom/mobile/apply-quick-actions/remove-blemishes-using-quick-actions.html), [Adobe Lightroom Texture 조절](https://helpx.adobe.com/in/lightroom-cc/using/edit-photos-mobile-ios.html), [Apple Vision 얼굴 랜드마크](https://developer.apple.com/documentation/vision/vnfacelandmarks2d/facecontour), [Apple WWDC23 개별 인물 마스크](https://developer.apple.com/videos/play/wwdc2023/111241/), [YUCIHighPassSkinSmoothing (MIT)](https://github.com/YuAo/YUCIHighPassSkinSmoothing), [photo-retouch-pro 공개 스킬](https://github.com/qzfcoder/photo-retouch-pro/blob/main/SKILL.md).
 
+## PF-025 · 인물 조명과 배경 깊이 효과 — 2026-09-26
+
+인물 사진의 얼굴 밝기와 배경 흐림을 촬영 후 조절할 수 있도록 채택했습니다. 저장된 심도 데이터가 없는 일반 사진에서도 동작하도록 Vision 온디바이스 인물 분할을 사용합니다.
+
+- 인물 조명은 기존 좌우 얼굴 선택과 연결하고 얼굴 윤곽 안에 절제된 노출 보정을 혼합합니다. 눈·입의 세부 보호는 피부 보정에만 적용합니다.
+- 배경 흐림은 `VNGeneratePersonInstanceMaskRequest`가 찾은 인물 인스턴스의 합집합 마스크를 사용합니다. 따라서 여러 명이 있는 사진에서는 전체 사람을 전경으로 유지하고, 인물별 조명은 선택한 얼굴 하나에만 적용합니다.
+- 기본 강도는 0이고 슬라이더, 원본 비교, 전체 초기화를 제공합니다. Vision 요청 실패·대상 미검출 시에는 원본을 보존합니다. 사진은 기기 안에서 처리합니다.
+
+Apple은 해당 요청으로 이미지에서 개별 사람 마스크를 생성하고, 인스턴스 선택을 통해 고해상도 마스크를 만들도록 안내합니다. 참고: [VNGeneratePersonInstanceMaskRequest](https://developer.apple.com/documentation/vision/vngeneratepersoninstancemaskrequest), [Vision 인물 마스크 합성 가이드](https://developer.apple.com/documentation/vision/applying-matte-effects-to-people-in-images-and-video).
+
 
 ## PF-017에서 결정할 항목 — 2026-09-26
 

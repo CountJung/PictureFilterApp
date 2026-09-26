@@ -216,6 +216,15 @@ iPhone 16 Pro Max (iOS 26.6.2)에서 테스트용 합성 색상표를 편집해 
 
 샘플 파일은 촬영 시각 메타데이터가 없고 파일 생성일이 2026-09-09 21:47 KST이므로 iPhone 사진 타임라인의 해당 날짜 구간에 놓일 수 있습니다. PhotosPicker로 사용자가 선택한 샘플은 편집 화면까지 정상 로드됐습니다. [Apple Support: iCloud Photos와 기기 저장 공간 최적화](https://support.apple.com/guide/iphone/sync-photos-videos-icloud/27/ios/27).
 
+## PF-025 인물 조명과 배경 깊이 효과 — 2026-09-26
+
+- iPhone 16 Pro Max 전체 단위 테스트 41개 통과: `.build/DerivedData/Logs/Test/Test-PictureFilterApp-2026.09.26_22-04-09-+0900.xcresult`.
+- 합성 두 인물 테스트에서 왼쪽 얼굴 조명만 달라지고 오른쪽 얼굴 픽셀은 유지됨을 확인했습니다: `FilterRendererTests.testPortraitLightChangesOnlySelectedSyntheticFace` (`22-03-31` 결과).
+- Vision 사람 인스턴스 마스크를 사용한 배경 흐림 테스트에서 배경 변화와 얼굴 중앙 보존을 확인했습니다: `FilterRendererTests.testBackgroundBlurUsesOnDevicePersonMask` (`22-03-57` 결과).
+- 시뮬레이터 UI 테스트에서 새 조명·배경 흐림 조절부 표시와 얼굴이 검출되지 않을 때의 안내 및 조명 비활성화를 확인했습니다. 전체 시뮬레이터 실행은 54개 중 50개 통과, 4개 실패였습니다. 3개는 시뮬레이터 Vision 추론이 지원되지 않아 얼굴 분석 기대값을 만족하지 못했고, 1개는 사진 권한 복구 UI 테스트 실패입니다. 따라서 시뮬레이터 전체 실행은 통과로 보지 않았습니다.
+- UI 레이아웃 재정리 후 관련 시뮬레이터 UI 테스트 2개를 다시 실행해 통과했습니다: `.build/DerivedData/Logs/Test/Test-PictureFilterApp-2026.09.26_22-07-49-+0900.xcresult`.
+- `VNGeneratePersonInstanceMaskRequest`의 인물 마스크를 합쳐 전경으로 사용하므로 다중 인물 사진의 배경 흐림에서는 모든 감지 인물을 보존합니다. 사람 마스크가 없거나 Vision 요청이 실패하면 원본을 유지합니다. 새 기능의 실기기 검증은 합성 두 인물 사진에 한정하며 자연 사진의 모발 경계·복잡한 가림·주관적 조명 품질 검증은 후속 보완 대상으로 남습니다.
+
 ## PF-019 실기기 품질·성능 검증 — 완료
 
 12MP 합성 색상표(`4032×3024`)를 테스트 전용 리소스로 추가했습니다. 원본 크기와 12개 색상 패치의 RGB 평균, 미리보기 및 JPEG 원본 크기 출력 40회 반복을 실기기에서 확인했습니다.

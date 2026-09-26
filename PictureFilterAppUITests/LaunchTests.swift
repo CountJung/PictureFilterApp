@@ -72,6 +72,8 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.buttons["pickPhoto"].exists)
         XCTAssertTrue(app.buttons["capturePhoto"].exists)
         XCTAssertTrue(app.sliders["skinSmoothingSlider"].exists)
+        XCTAssertTrue(app.sliders["portraitLightSlider"].exists)
+        XCTAssertTrue(app.sliders["backgroundBlurSlider"].exists)
     }
 
     func testPortraitControlKeepsOriginalWhenNoFaceIsDetected() {
@@ -82,6 +84,8 @@ final class LaunchTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["인물을 찾지 못하면 원본을 유지합니다."].waitForExistence(timeout: 10))
         XCTAssertFalse(app.pickers["skinFacePicker"].exists)
         XCTAssertTrue(app.sliders["skinSmoothingSlider"].exists)
+        XCTAssertFalse(app.sliders["portraitLightSlider"].isEnabled)
+        XCTAssertTrue(app.sliders["backgroundBlurSlider"].isEnabled)
     }
 
     func testCameraReportsUnavailableOnSimulator() {

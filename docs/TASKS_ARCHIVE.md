@@ -28,6 +28,7 @@
 - [PF-022 · 사진 스타일·인물 보정 방향 정리](#pf-022)
 - [PF-023 · 개성 있는 첫 사진 스타일 필터 묶음 구현](#pf-023)
 - [PF-024 · 인물별 선택형 자연 보정](#pf-024)
+- [PF-025 · 인물 조명과 배경 깊이 효과](#pf-025)
 
 ## 상세 항목
 
@@ -365,6 +366,21 @@
   - **설계 문서:** [ARCHITECTURE](ARCHITECTURE.md), [DECISIONS](DECISIONS.md), [E2E](E2E.md)
   - **담당 / 갱신일:** Codex / 2026-09-26
   - **진행 기록:** 인식 얼굴을 좌우 순서로 선택하고 모든 인물 또는 선택한 한 명의 강도를 조절할 수 있도록 구현했습니다. Vision 얼굴 외곽과 눈·눈썹·입을 이용한 마스크로 보정 범위를 제한하며 피부 혼합 강도를 낮게 제한해 질감을 남깁니다. 원본 비교, 선택 인물 초기화와 전체 초기화를 지원합니다. iPhone 16 Pro Max 전체 단위 테스트 38개 통과, 합성 두 인물에서 선택한 대상만 변경되는 것을 확인했습니다. CC0 공개 인물 사진에서도 눈·입·수염·머리카락 경계와 피부 결 보존을 눈으로 확인했습니다. 얼굴 미검출·Vision 실패 시 원본을 유지합니다. UI에서 얼굴 미검출 안내와 원본 유지 테스트 통과. 상세 결과는 [E2E](E2E.md)의 PF-024 기록에 있습니다.
+
+---
+
+<a id="pf-025"></a>
+
+- [x] **PF-025 · 인물 조명과 배경 깊이 효과**
+
+  **상태: 완료** · 우선순위: P2
+
+  - **할 일 / 완료 조건:** 선택한 얼굴의 국소 조명과 촬영 후 사진의 배경 흐림을 제공하고, 원본 비교·전체 초기화를 유지
+  - **선행 작업:** PF-024
+  - **참고 자료:** [Apple Vision 개별 인물 마스크](https://developer.apple.com/documentation/vision/vngeneratepersoninstancemaskrequest), [Apple Vision 마스크 합성 안내](https://developer.apple.com/documentation/vision/applying-matte-effects-to-people-in-images-and-video), [Apple 인물 사진 조명·심도](https://support.apple.com/guide/iphone/take-portraits-iphd7d3a91a2/27/ios/27)
+  - **설계 문서:** [ARCHITECTURE](ARCHITECTURE.md), [DECISIONS](DECISIONS.md), [E2E](E2E.md)
+  - **담당 / 갱신일:** Codex / 2026-09-26
+  - **진행 기록:** Vision 얼굴 윤곽으로 선택 인물에 국소 조명을 적용하고 VNGeneratePersonInstanceMaskRequest의 인물 마스크로 배경을 흐리게 했습니다. 효과 강도 0은 원본과 같고, 얼굴·사람 마스크 실패 시 원본 결과로 유지합니다. 편집 설정은 출력 렌더링에도 적용되며 사진은 기기에서 처리합니다. iPhone 16 Pro Max 전체 단위 테스트 41개와 새 효과별 선택 인물·마스크 테스트가 통과했습니다. 합성 두 인물에서 왼쪽 얼굴만 조명 변화, 인물은 선명하고 배경은 변하는 결과를 검증했습니다. 시뮬레이터 전체 테스트는 Vision 추론 불가와 사진 권한 상태 테스트로 4개가 실패했으므로 성공으로 기록하지 않았습니다. 상세는 [E2E](E2E.md)의 PF-025 기록을 참고하세요.
 
 ---
 

@@ -87,6 +87,7 @@ struct EditorView: View {
                     .gesture(DragGesture(minimumDistance: 0).updating($comparingOriginal) { _, state, _ in state = true })
                     .accessibilityIdentifier("compareOriginal")
                 filterControls
+                portraitControls
                 outputControls
             }
             .padding(20)
@@ -227,7 +228,7 @@ struct EditorView: View {
                     .accessibilityIdentifier("intensitySlider")
             }
             VStack(alignment: .leading) {
-                Text("피부 보정")
+                Text("인물 보정")
                 if model.detectedFaceCount > 1 {
                     Picker("보정 대상", selection: Binding<Int?>(
                         get: { model.settings.selectedSkinFaceIndex },
@@ -239,7 +240,7 @@ struct EditorView: View {
                         }
                     }
                     .accessibilityIdentifier("skinFacePicker")
-                    Text("사진에서 왼쪽에 있는 인물부터 번호를 붙입니다.")
+                    Text("사진에서 왼쪽에 있는 얼굴부터 번호를 붙입니다.")
                         .font(.footnote).foregroundStyle(.secondary)
                 } else if model.detectedFaceCount == 1 {
                     Text("인물 1").font(.subheadline).foregroundStyle(.secondary)
@@ -257,6 +258,38 @@ struct EditorView: View {
                         .disabled(!model.canEdit || isSaving || isShowingFileExporter)
                         .accessibilityIdentifier("resetSelectedSkinSmoothing")
                 }
+            }
+        }
+    }
+
+    private var portraitControls: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("인물 조명과 배경 깊이")
+                .font(.headline)
+            Text("인물 조명은 위에서 고른 얼굴에 적용됩니다.")
+                .font(.footnote).foregroundStyle(.secondary)
+            VStack(alignment: .leading) {
+                Text("인물 조명")
+                Slider(value: Binding(get: { model.settings.activePortraitLight }, set: { model.setPortraitLight($0) }), in: 0...1)
+                    .disabled(!model.canEdit || model.detectedFaceCount == 0 || isSaving || isShowingFileExporter)
+                    .accessibilityLabel("인물 조명 강도")
+                    .accessibilityIdentifier("portraitLightSlider")
+                Text(model.detectedFaceCount == 0 ? "얼굴을 찾지 못해 조명 보정을 사용할 수 없습니다." : "얼굴 윤곽 안쪽에 부드러운 빛을 더합니다.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+            if model.settings.selectedSkinFaceIndex != nil {
+                Button("이 인물 조명 초기화") { model.resetSelectedPortraitEffects() }
+                    .disabled(!model.canEdit || isSaving || isShowingFileExporter)
+                    .accessibilityIdentifier("resetSelectedPortraitLight")
+            }
+            VStack(alignment: .leading) {
+                Text("배경 흐림")
+                Slider(value: Binding(get: { model.settings.backgroundBlur }, set: { model.setBackgroundBlur($0) }), in: 0...1)
+                    .disabled(!model.canEdit || isSaving || isShowingFileExporter)
+                    .accessibilityLabel("배경 흐림 강도")
+                    .accessibilityIdentifier("backgroundBlurSlider")
+                Text("Vision이 인물을 분리하지 못하면 원본을 유지합니다. 사진은 기기에서 처리됩니다.")
+                    .font(.footnote).foregroundStyle(.secondary)
             }
         }
     }

@@ -63,6 +63,22 @@ final class EditorModel {
         invalidatePreview()
     }
 
+    func setPortraitLight(_ value: Double) {
+        guard canEdit else { return }
+        let previous = settings
+        settings.setPortraitLight(value)
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
+    func setBackgroundBlur(_ value: Double) {
+        guard canEdit else { return }
+        let previous = settings
+        settings.setBackgroundBlur(value)
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
     func selectSkinFace(_ index: Int?) {
         guard canEdit, settings.selectedSkinFaceIndex != index else { return }
         let previous = settings
@@ -75,6 +91,14 @@ final class EditorModel {
         guard canEdit else { return }
         let previous = settings
         settings.resetSelectedSkinSmoothing()
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
+    func resetSelectedPortraitEffects() {
+        guard canEdit else { return }
+        let previous = settings
+        settings.resetSelectedPortraitEffects()
         guard previous != settings else { return }
         invalidatePreview()
     }

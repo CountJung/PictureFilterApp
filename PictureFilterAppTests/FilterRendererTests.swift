@@ -300,6 +300,39 @@ final class FilterRendererTests: XCTestCase {
         XCTAssertGreaterThan(try meanDifference(input, rightOutput, xRange: 700..<1320), 0.01)
     }
 
+    func testPortraitLightChangesOnlySelectedSyntheticFace() async throws {
+        let input = try portraitPairFixture()
+        do {
+            guard try detectedFaceCount(input) == 2 else { throw XCTSkip("Vision did not detect the synthetic faces on this runtime.") }
+        } catch is XCTSkip {
+            throw XCTSkip("Vision face analysis is unavailable on this runtime.")
+        } catch {
+            throw XCTSkip("Vision face analysis is unavailable on this runtime: \(error.localizedDescription)")
+        }
+
+        var settings = EditSettings()
+        settings.selectSkinFace(0)
+        settings.setPortraitLight(1)
+        let renderer = FilterRenderer()
+        let original = try await renderer.render(input, settings: EditSettings(), maxDimension: 1400)
+        let lit = try await renderer.render(input, settings: settings, maxDimension: 1400)
+        XCTAssertGreaterThan(try meanDifference(original, lit, xRange: 25..<640), 0.1)
+        XCTAssertLessThan(try meanDifference(original, lit, xRange: 680..<1310), 0.01)
+    }
+
+    func testBackgroundBlurUsesOnDevicePersonMask() async throws {
+        let input = try portraitPairFixture()
+        var settings = EditSettings()
+        settings.setBackgroundBlur(1)
+        let renderer = FilterRenderer()
+        let original = try await renderer.render(input, settings: EditSettings(), maxDimension: 1400)
+        let blurred = try await renderer.render(input, settings: settings, maxDimension: 1400)
+        XCTAssertGreaterThan(try meanDifference(original, blurred, xRange: 0..<1320), 0.01)
+        let originalSubject = try averageColor(original, xFraction: 0.24)
+        let blurredSubject = try averageColor(blurred, xFraction: 0.24)
+        XCTAssertLessThan(zip(originalSubject, blurredSubject).map { abs($0 - $1) }.max() ?? 0, 1)
+    }
+
     func testHighResolutionOutputPreservesDimensionsAndChartColors() async throws {
         let input = try highResolutionFixture()
         let inputDimensions = try dimensions(input)

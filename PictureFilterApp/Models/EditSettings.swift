@@ -26,10 +26,18 @@ struct EditSettings: Equatable, Sendable {
     private(set) var skinSmoothing: Double = 0
     private(set) var selectedSkinFaceIndex: Int?
     private(set) var faceSkinSmoothing: [Int: Double] = [:]
+    private(set) var portraitLight: Double = 0
+    private(set) var facePortraitLight: [Int: Double] = [:]
+    private(set) var backgroundBlur: Double = 0
 
     var activeSkinSmoothing: Double {
         guard let selectedSkinFaceIndex else { return skinSmoothing }
         return faceSkinSmoothing[selectedSkinFaceIndex] ?? skinSmoothing
+    }
+
+    var activePortraitLight: Double {
+        guard let selectedSkinFaceIndex else { return portraitLight }
+        return facePortraitLight[selectedSkinFaceIndex] ?? portraitLight
     }
 
     mutating func select(_ filter: PhotoFilter) { self.filter = filter }
@@ -67,5 +75,37 @@ struct EditSettings: Equatable, Sendable {
             return
         }
         faceSkinSmoothing.removeValue(forKey: selectedSkinFaceIndex)
+    }
+
+    mutating func setPortraitLight(_ value: Double) {
+        guard value.isFinite else { return }
+        let clamped = min(1, max(0, value))
+        if let selectedSkinFaceIndex {
+            if clamped == portraitLight {
+                facePortraitLight.removeValue(forKey: selectedSkinFaceIndex)
+            } else {
+                facePortraitLight[selectedSkinFaceIndex] = clamped
+            }
+        } else {
+            portraitLight = clamped
+        }
+    }
+
+    func portraitLight(forFaceAt index: Int) -> Double {
+        facePortraitLight[index] ?? portraitLight
+    }
+
+    mutating func setBackgroundBlur(_ value: Double) {
+        guard value.isFinite else { return }
+        backgroundBlur = min(1, max(0, value))
+    }
+
+    mutating func resetSelectedPortraitEffects() {
+        guard let selectedSkinFaceIndex else {
+            portraitLight = 0
+            facePortraitLight.removeAll()
+            return
+        }
+        facePortraitLight.removeValue(forKey: selectedSkinFaceIndex)
     }
 }
