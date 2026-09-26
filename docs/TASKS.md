@@ -4,20 +4,7 @@
 
 ## 다음 작업
 
-### 제품 방향
-
-<a id="pf-022"></a>
-
-- [ ] **PF-022 · 사진 스타일·인물 보정 방향 정리**
-
-  **상태: 진행 중** · 우선순위: P1
-
-  - **할 일 / 완료 조건:** 사용자가 이 앱으로 어떤 분위기와 이야기를 사진에 담고 싶은지 정리하고, 차별화된 첫 필터 묶음과 제외 범위를 결정
-  - **참고 자료:** [Adobe Lightroom 프리셋](https://helpx.adobe.com/lightroom/desktop/edit-photos/presets.html), [Adobe 인물 마스킹](https://helpx.adobe.com/uk/lightroom/web/edit-photos/apply-masks/mask-with-ai.html), [Apple 인물 사진 조명·심도](https://support.apple.com/guide/iphone/take-portraits-iphd7d3a91a2/27/ios/27), [Google Photos 인물 조명·흐림·강도 조절](https://blog.google/products-and-platforms/products/photos/google-ai-photo-editing-features-tips/)
-  - **설계 문서:** [MASTER_PLAN](MASTER_PLAN.md), [DECISIONS](DECISIONS.md)
-  - **담당 / 갱신일:** Codex / 2026-09-26
-  - **조사 결과:** 공개 공식 자료에서 Lightroom은 인물 프리셋과 필름 영감 룩, 사람별 피부·눈·입술·치아·머리카락 마스크, 잡티 보정의 강도·복원 조절을 제공합니다. Apple Photos와 Google Photos는 촬영 후 인물 조명, 배경 흐림, 효과 강도 조절을 안내합니다. 현재 앱은 전역 흑백·세피아·따뜻함·차가움 필터와 눈·입을 제외한 단순 얼굴 피부 부드럽게 하기를 제공하며, 개인별 선택·세부 얼굴 영역 보정·인물 조명은 아직 없습니다.
-  - **아이디어 초안:** (1) 색온도만 바꾸지 않는 3~5개 사진 스타일 프리셋: 필름 질감/톤, 인물에 어울리는 자연광, 도시 야간 등. (2) 인물별 피부 보정과 선택 영역 복원으로 피부 질감·눈·입·머리카락을 보존. (3) 후속 후보로 인물 조명과 배경 흐림. 프리셋 즐겨찾기와 빠른 전후 비교도 검토합니다. 이는 공개 제품 동작에서 얻은 아이디어이며, 사용자 가치와 첫 출시 범위는 아직 결정하지 않았습니다.
+### 스타일 필터
 
 <a id="pf-023"></a>
 

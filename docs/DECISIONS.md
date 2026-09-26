@@ -63,6 +63,18 @@ Core Image를 사용합니다. 흑백은 CIColorControls의 saturation=0, 세피
 
 촬영 후 편집기에서 보정하는 흐름을 채택했습니다. 실시간 카메라 프리뷰 필터는 첫 구현에서 제외하고, 촬영 이미지를 기존 정지 이미지 경로에 넣어 색상 필터·피부 보정·저장을 함께 적용합니다. 피부 보정은 기본 0(꺼짐)이며 Vision 얼굴 랜드마크 기반 얼굴 마스크 안에서 Gaussian blur를 혼합합니다. 눈과 입 마스크를 제외하고 얼굴을 찾지 못하면 입력 픽셀을 보존합니다. 자동 보정은 기기에서 실행하고 사진을 서버로 보내지 않습니다. 실제 아이폰에서 인식 품질, 결과 자연스러움, 카메라 권한과 캡처 품질을 검증해야 합니다(PF-018~PF-019).
 
+## PF-022 · 사진 스타일·인물 보정 방향 — 2026-09-26
+
+공식 제품 자료에서 Lightroom의 필름풍 프리셋, 사람별 얼굴 부위 마스크와 강도·복원 조절을, Apple Photos와 Google Photos의 촬영 후 인물 조명·배경 흐림을 조사했습니다. 이를 바탕으로 이 앱은 단순 색온도 변형을 넘는 스타일과, 자연스러움·원본 복귀가 가능한 인물 보정을 제공하는 방향을 채택합니다.
+
+- 첫 스타일: **소프트 필름**(부드러운 대비와 따뜻한 톤), **골든아워**(따뜻한 빛과 밝은 하이라이트), **시네마틱**(차가운 그림자와 강조된 명암), **비비드**(선명한 색과 대비).
+- 각 스타일은 독립된 이름과 복수의 이미지 조정으로 구별하고, 기존 강도 슬라이더와 원본 비교를 그대로 사용합니다.
+- 인물 보정은 사용자가 보정 대상을 선택하고 강도를 조절할 수 있게 하며, 피부 외 영역과 눈·입을 보호하고 원본으로 복구할 수 있게 합니다.
+- 얼굴형 변경, 강제 미백, 생성형 변경, 사진 서버 전송은 제외합니다. 인물 조명과 배경 흐림은 현 범위에 넣지 않고 추후 필요를 확인합니다.
+- 구현 순서: 스타일 프리셋(PF-023) 다음 인물별 선택형 자연 보정(PF-024). 오프라인 처리와 실패 시 원본 보존을 유지합니다.
+
+참고한 공개 자료: [Adobe Lightroom 프리셋](https://helpx.adobe.com/lightroom/desktop/edit-photos/presets.html), [Adobe 인물 마스킹](https://helpx.adobe.com/uk/lightroom/web/edit-photos/apply-masks/mask-with-ai.html), [Apple 인물 사진 조명·심도](https://support.apple.com/guide/iphone/take-portraits-iphd7d3a91a2/27/ios/27), [Google Photos 인물 조명·흐림](https://blog.google/products-and-platforms/products/photos/google-ai-photo-editing-features-tips/).
+
 
 ## PF-017에서 결정할 항목 — 2026-09-26
 
