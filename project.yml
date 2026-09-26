@@ -31,6 +31,7 @@ targets:
       - path: PictureFilterAppTests
     resources:
       - path: PictureFilterAppTests/Resources/Fixtures/synthetic-face.jpg
+      - path: PictureFilterAppTests/Resources/Fixtures/synthetic-high-resolution.jpg
     dependencies:
       - target: PictureFilterApp
     settings:
