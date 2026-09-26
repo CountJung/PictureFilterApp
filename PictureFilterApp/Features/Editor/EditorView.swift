@@ -215,23 +215,10 @@ struct EditorView: View {
             Text(comparingOriginal ? "원본 비교 중" : "선택: " + model.settings.filter.title)
                 .font(.caption).foregroundStyle(.secondary)
                 .accessibilityIdentifier("filterStatus")
-            Text("필터").font(.headline)
-            ScrollView(.horizontal) {
-                HStack {
-                    ForEach(PhotoFilter.allCases) { filter in
-                        Button { model.selectFilter(filter) } label: {
-                            Text(filter.title)
-                                .padding(.horizontal, 16).padding(.vertical, 12)
-                                .background(filter == model.settings.filter ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08), in: Capsule())
-                        }
-                        .buttonStyle(.plain)
-                .disabled(!model.canEdit || isSaving || isShowingFileExporter)
-                        .accessibilityIdentifier("filter-" + filter.rawValue)
-                        .accessibilityAddTraits(filter == model.settings.filter ? .isSelected : [])
-                    }
-                }
-            }
-            .accessibilityIdentifier("filterList")
+            Text("기본 필터").font(.headline)
+            filterChoices(PhotoFilter.basic)
+            Text("사진 스타일").font(.headline)
+            filterChoices(PhotoFilter.styles)
             VStack(alignment: .leading) {
                 Text("강도")
                 Slider(value: Binding(get: { model.settings.intensity }, set: { model.setIntensity($0) }), in: 0...1)
@@ -249,6 +236,25 @@ struct EditorView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func filterChoices(_ filters: [PhotoFilter]) -> some View {
+        ScrollView(.horizontal) {
+            HStack {
+                ForEach(filters) { filter in
+                    Button { model.selectFilter(filter) } label: {
+                        Text(filter.title)
+                            .padding(.horizontal, 16).padding(.vertical, 12)
+                            .background(filter == model.settings.filter ? Color.accentColor.opacity(0.15) : Color.secondary.opacity(0.08), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!model.canEdit || isSaving || isShowingFileExporter)
+                    .accessibilityIdentifier("filter-" + filter.rawValue)
+                    .accessibilityAddTraits(filter == model.settings.filter ? .isSelected : [])
+                }
+            }
+        }
+        .accessibilityIdentifier(filters == PhotoFilter.basic ? "basicFilterList" : "styleFilterList")
     }
 
     private var outputControls: some View {

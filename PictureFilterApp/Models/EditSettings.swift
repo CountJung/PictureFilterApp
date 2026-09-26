@@ -1,7 +1,9 @@
 import Foundation
 
 enum PhotoFilter: String, CaseIterable, Identifiable, Sendable {
-    case original, monochrome, sepia, warm, cool
+    case original, monochrome, sepia, warm, cool, softFilm, goldenHour, cinematic, vivid
+    static let basic: [PhotoFilter] = [.original, .monochrome, .sepia, .warm, .cool]
+    static let styles: [PhotoFilter] = [.softFilm, .goldenHour, .cinematic, .vivid]
     var id: String { rawValue }
     var title: String {
         switch self {
@@ -10,6 +12,10 @@ enum PhotoFilter: String, CaseIterable, Identifiable, Sendable {
         case .sepia: return "세피아"
         case .warm: return "따뜻함"
         case .cool: return "차가움"
+        case .softFilm: return "소프트 필름"
+        case .goldenHour: return "골든아워"
+        case .cinematic: return "시네마틱"
+        case .vivid: return "비비드"
         }
     }
 }

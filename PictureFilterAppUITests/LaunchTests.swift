@@ -46,6 +46,24 @@ final class LaunchTests: XCTestCase {
         XCTAssertFalse(app.sliders["intensitySlider"].isEnabled)
     }
 
+    func testExpressiveStylePresetsAreVisibleAndSelectable() {
+        let app = XCUIApplication()
+        app.launch()
+        app.buttons["start-sample-portrait"].tap()
+        XCTAssertTrue(app.images["imagePreview"].waitForExistence(timeout: 10))
+
+        for style in ["softFilm", "goldenHour", "cinematic", "vivid"] {
+            XCTAssertTrue(app.buttons["filter-\(style)"].exists)
+        }
+        app.buttons["filter-goldenHour"].tap()
+        XCTAssertEqual(app.staticTexts["filterStatus"].label, "선택: 골든아워")
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "PF-023-expressive-style-presets"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testSystemPhotoPickerIsAvailableWithoutAConnectedPhone() {
         let app = XCUIApplication()
         app.launch()

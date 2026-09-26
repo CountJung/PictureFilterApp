@@ -62,6 +62,21 @@ actor FilterRenderer: PreviewRendering, OutputRendering {
                 filter.bVector = CIVector(x: 0, y: 0, z: warm ? 0.94 : 1.08, w: 0)
                 guard let output = filter.outputImage else { throw ImageServiceError.invalidImage }
                 filtered = output
+            case .softFilm:
+                let toned = colorControls(original, saturation: 0.84, contrast: 0.91, brightness: 0.035)
+                let shadows = highlightShadow(toned, shadows: 0.22, highlights: 0.88)
+                filtered = vignette(shadows, amount: 0.12, extent: original.extent)
+            case .goldenHour:
+                let toned = colorControls(original, saturation: 1.08, contrast: 1.02, brightness: 0.025)
+                let warm = colorMatrix(toned, red: 1.045, green: 1.0, blue: 0.94, redOffset: 0.012, blueOffset: -0.004)
+                filtered = highlightShadow(warm, shadows: 0.16, highlights: 0.93)
+            case .cinematic:
+                let toned = colorControls(original, saturation: 0.88, contrast: 1.13, brightness: -0.018)
+                let coolShadows = colorMatrix(toned, red: 0.975, green: 1.015, blue: 1.065, redOffset: -0.006, blueOffset: 0.012)
+                filtered = vignette(coolShadows, amount: 0.2, extent: original.extent)
+            case .vivid:
+                let toned = colorControls(original, saturation: 1.22, contrast: 1.08, brightness: 0.006)
+                filtered = highlightShadow(toned, shadows: 0.13, highlights: 0.96)
             }
             let blend = CIFilter.dissolveTransition()
             blend.inputImage = original
@@ -92,5 +107,41 @@ actor FilterRenderer: PreviewRendering, OutputRendering {
         guard CGImageDestinationFinalize(destination) else { throw ImageServiceError.invalidImage }
         try Task.checkCancellation()
         return output as Data
+    }
+
+    private func colorControls(_ image: CIImage, saturation: Float, contrast: Float, brightness: Float) -> CIImage {
+        let filter = CIFilter.colorControls()
+        filter.inputImage = image
+        filter.saturation = saturation
+        filter.contrast = contrast
+        filter.brightness = brightness
+        return filter.outputImage ?? image
+    }
+
+    private func highlightShadow(_ image: CIImage, shadows: Float, highlights: Float) -> CIImage {
+        let filter = CIFilter.highlightShadowAdjust()
+        filter.inputImage = image
+        filter.shadowAmount = shadows
+        filter.highlightAmount = highlights
+        return filter.outputImage ?? image
+    }
+
+    private func colorMatrix(_ image: CIImage, red: CGFloat, green: CGFloat, blue: CGFloat,
+                             redOffset: CGFloat = 0, blueOffset: CGFloat = 0) -> CIImage {
+        let filter = CIFilter.colorMatrix()
+        filter.inputImage = image
+        filter.rVector = CIVector(x: red, y: 0, z: 0, w: 0)
+        filter.gVector = CIVector(x: 0, y: green, z: 0, w: 0)
+        filter.bVector = CIVector(x: 0, y: 0, z: blue, w: 0)
+        filter.biasVector = CIVector(x: redOffset, y: 0, z: blueOffset, w: 0)
+        return filter.outputImage ?? image
+    }
+
+    private func vignette(_ image: CIImage, amount: Float, extent: CGRect) -> CIImage {
+        let filter = CIFilter.vignette()
+        filter.inputImage = image
+        filter.intensity = amount
+        filter.radius = Float(max(extent.width, extent.height) * 0.72)
+        return (filter.outputImage ?? image).cropped(to: extent)
     }
 }

@@ -2,6 +2,7 @@ import XCTest
 import UIKit
 import ImageIO
 import UniformTypeIdentifiers
+import Vision
 @testable import PictureFilterApp
 
 final class FilterRendererTests: XCTestCase {
@@ -37,6 +38,14 @@ final class FilterRendererTests: XCTestCase {
         let width = try XCTUnwrap(properties[kCGImagePropertyPixelWidth] as? Int)
         let height = try XCTUnwrap(properties[kCGImagePropertyPixelHeight] as? Int)
         return (width, height)
+    }
+
+    private func detectedFaceCount(_ data: Data) throws -> Int {
+        let source = try XCTUnwrap(CGImageSourceCreateWithData(data as CFData, nil))
+        let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil))
+        let request = VNDetectFaceRectanglesRequest()
+        try VNImageRequestHandler(cgImage: image, orientation: .up).perform([request])
+        return request.results?.count ?? 0
     }
 
     private func averageColor(_ data: Data, xFraction: Double) throws -> [Double] {
@@ -92,6 +101,82 @@ final class FilterRendererTests: XCTestCase {
         XCTAssertLessThan(warm[2], cool[2])
         let sepia = try pixel(await renderer.render(input, settings: settings(.sepia, 1)))
         XCTAssertGreaterThan(sepia[0], sepia[2])
+    }
+
+    func testExpressiveStylesRenderDistinctLooksOnPortraitAndLandscapeSamples() async throws {
+        let inputService = BundleSampleInput()
+        let renderer = FilterRenderer()
+        for sample in [SampleImage.catalog[0], SampleImage.catalog[1]] {
+            let input = try await inputService.load(sample)
+            var outputs = [Data]()
+            for style in PhotoFilter.styles {
+                outputs.append(try await renderer.render(input, settings: settings(style, 1)))
+            }
+            XCTAssertEqual(Set(outputs).count, PhotoFilter.styles.count, "Each style should have a distinct render for \(sample.title)")
+            let original = try await renderer.render(input, settings: settings(.original, 1))
+            XCTAssertTrue(outputs.allSatisfy { $0 != original }, "Each style should differ from the original for \(sample.title)")
+        }
+    }
+
+    func testExpressiveStylesKeepGeneratedPortraitFaceDetectable() async throws {
+        let url = try XCTUnwrap(Bundle(for: FilterRendererTests.self).url(forResource: "synthetic-face", withExtension: "jpg"))
+        let input = try Data(contentsOf: url)
+        let originalFaceCount = try detectedFaceCount(input)
+        XCTAssertEqual(originalFaceCount, 1)
+
+        let renderer = FilterRenderer()
+        for style in PhotoFilter.styles {
+            let output = try await renderer.render(input, settings: settings(style, 1), maxDimension: 1600)
+            let outputDimensions = try dimensions(output)
+            let inputDimensions = try dimensions(input)
+            XCTAssertEqual(outputDimensions.width, inputDimensions.width)
+            XCTAssertEqual(outputDimensions.height, inputDimensions.height)
+            XCTAssertEqual(try detectedFaceCount(output), originalFaceCount, "\(style.title) should preserve portrait geometry")
+            let attachment = XCTAttachment(data: output, uniformTypeIdentifier: "public.png")
+            attachment.name = "PF-023-\(style.rawValue)-synthetic-portrait"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+    }
+
+    func testExpressiveStylesRespectIntensityAndRenderFromOriginal() async throws {
+        let input = try await BundleSampleInput().load(SampleImage.catalog[0])
+        let renderer = FilterRenderer()
+        let original = try await renderer.render(input, settings: settings(.original, 1))
+        for style in PhotoFilter.styles {
+            let zero = try await renderer.render(input, settings: settings(style, 0))
+            XCTAssertEqual(zero, original)
+            let half = try await renderer.render(input, settings: settings(style, 0.5))
+            let full = try await renderer.render(input, settings: settings(style, 1))
+            XCTAssertNotEqual(half, original)
+            XCTAssertNotEqual(full, original)
+            let repeated = try await renderer.render(input, settings: settings(style, 1))
+            XCTAssertEqual(repeated, full)
+        }
+    }
+
+    func testExpressiveStylesFollowTheirIntendedColorDirection() async throws {
+        let input = try highResolutionFixture()
+        let renderer = FilterRenderer()
+        let coolPatch = 11.0 / 24.0
+        let bluePatch = 13.0 / 24.0
+        let redPatch = 3.0 / 24.0
+        let originalCool = try averageColor(input, xFraction: coolPatch)
+        let originalBlue = try averageColor(input, xFraction: bluePatch)
+        let originalRed = try averageColor(input, xFraction: redPatch)
+        let softFilm = try await renderer.render(input, settings: settings(.softFilm, 1), maxDimension: 4096)
+        let goldenHour = try await renderer.render(input, settings: settings(.goldenHour, 1), maxDimension: 4096)
+        let cinematic = try await renderer.render(input, settings: settings(.cinematic, 1), maxDimension: 4096)
+        let vivid = try await renderer.render(input, settings: settings(.vivid, 1), maxDimension: 4096)
+
+        let softCool = try averageColor(softFilm, xFraction: coolPatch)
+        let goldenRed = try averageColor(goldenHour, xFraction: redPatch)
+        let cinematicBlue = try averageColor(cinematic, xFraction: bluePatch)
+        let vividCool = try averageColor(vivid, xFraction: coolPatch)
+        XCTAssertLessThan(abs(softCool[1] - softCool[2]), abs(originalCool[1] - originalCool[2]), "Soft Film should mute saturation")
+        XCTAssertGreaterThan(goldenRed[0] - goldenRed[2], originalRed[0] - originalRed[2], "Golden Hour should warm the image")
+        XCTAssertGreaterThan(cinematicBlue[2] - cinematicBlue[0], originalBlue[2] - originalBlue[0], "Cinematic should cool blue tones")
+        XCTAssertGreaterThan(abs(vividCool[1] - vividCool[2]), abs(originalCool[1] - originalCool[2]), "Vivid should increase color separation")
     }
 
     func testIntermediateStrengthAndNonAccumulation() async throws {
