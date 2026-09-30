@@ -138,12 +138,8 @@ struct EditorView: View {
         }
         .photosPicker(isPresented: $isShowingPhotoPicker, selection: $pickerItem, matching: .images, photoLibrary: .shared())
         .sheet(isPresented: $isShowingCamera) {
-            CameraCaptureSheet { image in
+            CameraCaptureSheet { data in
                 defer { isShowingCamera = false }
-                guard let data = image.jpegData(compressionQuality: 0.95) else {
-                    saveMessage = "촬영한 사진을 불러오지 못했습니다. 다시 촬영해 주세요."
-                    return
-                }
                 model.load(data, title: "카메라 사진")
                 selectedSample = model.sample
                 saveMessage = nil

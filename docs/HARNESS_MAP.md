@@ -104,3 +104,14 @@ VS Code 작업 파일은 JSON 파싱 검사를 통과했습니다. 셸 스크립
 읽기 전용 키체인 점검 결과 Apple Development 인증서 1개가 보이고 만료일은 2027-09-26입니다. `security find-identity -v -p codesigning` 결과는 0 valid identities입니다. 즉, 현재 로그인 키체인 검색 범위에 Xcode 코드 서명에 사용할 개인 키와 인증서의 쌍이 없습니다. 로컬 provisioning profile도 0개입니다. Xcode 프로젝트 `DEVELOPMENT_TEAM`은 공란이고 앱 Bundle Identifier는 `com.local.PictureFilterApp`입니다.
 
 Xcode → Settings → Accounts에서 개인 팀의 Manage Certificates를 열어 해당 인증서가 이 Mac에 개인 키와 함께 있는지 확인해야 합니다. 인증서만 있고 개인 키가 없다면, 인증서를 만든 Mac의 개인 키를 포함한 `.p12`를 가져오거나 Xcode에서 Apple Development 인증서를 새로 생성해야 합니다. 그 뒤 프로젝트 Signing & Capabilities에서 개인 팀과 사용 가능한 고유 Bundle Identifier를 선택해 자동 서명을 확인합니다. 이번 점검은 키체인·프로젝트·프로파일을 변경하지 않았습니다.
+
+
+## 2026-09-30 · 훅 실패와 작업 경로 점검
+
+- 실제 작업·빌드·Git 저장소: `/Users/jsjmac/Workspace/MacWorking/PictureFilterApp`. Codex 앱의 등록된 `picfilterapp` 프로젝트도 이 내장 경로입니다.
+- 이 오래된 대화의 세션 작업 경로에는 `/Volumes/Crucial X6/MacWorking/PictureFilterApp`가 남아 있으며 현재 해당 폴더는 존재하지 않습니다. 앱 로그의 workspace watcher에도 같은 경로의 `ENOENT`가 반복 기록됩니다.
+- 활성 Git 훅은 없습니다. `core.hooksPath`는 지정되지 않았고 `.git/hooks`에는 `.sample`만 있습니다. Xcode 프로젝트·VS Code 작업·빌드 스크립트에도 외장 경로 하드코딩은 없습니다.
+- Codex 사용자 훅 설정 `/Users/jsjmac/.codex/hooks.json`에는 Serena의 `SessionStart`, `PreToolUse`, `Stop` 명령이 등록되어 있습니다. 실행 파일과 Python 환경은 존재합니다. 동일한 점검용 입력을 내장 경로에서 실행한 `serena-hooks remind --client=codex`는 종료 코드 0, 표준 오류 없음으로 정상 종료했습니다. 외장 경로를 프로세스 작업 디렉터리로 지정하면 `FileNotFoundError(2)`가 재현됩니다.
+- [공식 훅 문서](https://learn.chatgpt.com/docs/hooks)에 따르면 명령 훅은 세션 cwd에서 실행됩니다. 따라서 현재 세션의 사라진 cwd가 훅 실행을 방해할 수 있음이 재현됐습니다. 앱 로그에서 개별 훅의 전체 stderr를 얻은 것은 아니므로 모든 과거 훅 오류가 동일 원인이라고 단정하지 않습니다.
+- **남은 조치:** 이 대화를 내장 경로로 재개해야 합니다. 프로젝트 등록 변경과 개별 대화의 cwd는 별개입니다. 현재 제공된 앱 도구에는 실행 중인 이 대화의 cwd 변경 기능이 없으며, 다른 대화 이동 도구도 호출 중인 대화 자체를 이동할 수 없습니다. 사용자가 내장 `picfilterapp` 프로젝트에서 작업을 다시 열거나 그 경로에서 이어갈 때 훅 실행을 재확인해야 합니다. 실제 작업 파일과 커밋은 이미 내장 저장소에 있습니다.
+- 전역 Serena 훅은 다른 프로젝트에도 영향을 주므로 이번 점검에서 제거·무력화하지 않았습니다. 존재하지 않는 외장 마운트 경로를 흉내 내는 링크나 앱 내부 DB 직접 수정도 하지 않았습니다. 새 경로에서 실패가 계속되면 훅 오류의 실제 stderr를 확인하여 별도 원인으로 분리합니다.

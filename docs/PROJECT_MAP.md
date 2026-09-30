@@ -10,10 +10,11 @@ PictureFilterApp/
 ├─ PictureFilterApp.xcodeproj/    # 생성된 프로젝트·공유 스킴
 ├─ PictureFilterApp/
 │  ├─ App/                       # 앱·기본 화면·서비스 주입
-│  ├─ Features/Editor/           # 편집 모델·미리보기·사진 변경·카메라 촬영 화면
+│  ├─ Features/Editor/           # 편집 모델·사진 변경·전용 카메라 시트
+│  ├─ Features/Camera/           # 촬영 상태 모델·AVFoundation 미리보기
 │  ├─ Models/                    # 필터 종류·편집 설정
 │  ├─ Rendering/                 # Core Image 필터·화사한 인물·피부·조명·배경 흐림
-│  ├─ Services/                  # 샘플 입력·메모리 출력·실패 대역
+│  ├─ Services/                  # 사진 입출력·직렬 큐 카메라 세션·실패 대역
 │  └─ Resources/Samples/         # 가로·세로 색상표 PNG
 ├─ PictureFilterAppTests/         # 상태·렌더링·입출력·인물 효과 검증
 ├─ PictureFilterAppUITests/       # 편집·저장·접근성 UI 검증
@@ -28,6 +29,6 @@ PictureFilterApp/
 
 ## 예정 구성
 
-전용 카메라 화면과 AVFoundation 촬영 서비스는 PF-028에서 추가합니다. 현재 Features/Editor/CameraCaptureSheet.swift는 시스템 카메라 피커 연결이며 전용 줌 제어 구현이 아닙니다. 예정 책임과 데이터 흐름은 [ARCHITECTURE](ARCHITECTURE.md#portrait-camera-next)를 따릅니다.
+PF-028에서 전용 카메라 화면과 AVFoundation 촬영 서비스를 추가했습니다. 전용 배율 제어는 아직 없으며 PF-029에서 구현합니다. 예정 책임과 데이터 흐름은 [ARCHITECTURE](ARCHITECTURE.md#portrait-camera-next)를 따릅니다.
 
 `Rendering/BrightPortraitFilter.swift`는 화사한 인물 톤 처리와 주입 가능한 얼굴 영역 검출을 담당합니다. `PictureFilterAppTests/BrightPortraitTests.swift`는 시뮬레이터에서 계조·피부색 범위·얼굴 영역·미리보기/출력 일치 및 원본 보존을 검증합니다.

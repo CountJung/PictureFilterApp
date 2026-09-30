@@ -40,6 +40,32 @@ final class LaunchTests: XCTestCase {
         XCTAssertEqual(app.staticTexts["filterStatus"].label, "선택: 원본")
     }
 
+    func testDedicatedCameraCaptureAndCancelWithSimulatorStandIn() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-test-camera"]
+        app.launch()
+        app.buttons["start-sample-portrait"].tap()
+        XCTAssertTrue(app.images["imagePreview"].waitForExistence(timeout: 10))
+        app.buttons["capturePhoto"].tap()
+        XCTAssertTrue(app.buttons["cameraShutter"].waitForExistence(timeout: 10))
+        app.buttons["cameraSwitch"].tap()
+        XCTAssertTrue(app.staticTexts["cameraFacing"].label.contains("전면"))
+        XCTAssertFalse(app.segmentedControls["cameraFlash"].exists)
+        app.sliders["cameraExposure"].adjust(toNormalizedSliderPosition: 0.7)
+        app.buttons["cameraShutter"].tap()
+        let title = app.staticTexts["sampleTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertEqual(title.label, "카메라 사진")
+        XCTAssertTrue(app.images["imagePreview"].exists)
+        app.buttons["filter-brightPortrait"].tap()
+        app.buttons["capturePhoto"].tap()
+        XCTAssertTrue(app.buttons["cameraCancel"].waitForExistence(timeout: 10))
+        app.buttons["cameraCancel"].tap()
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertEqual(title.label, "카메라 사진")
+        XCTAssertEqual(app.staticTexts["filterStatus"].label, "선택: 화사한 인물")
+    }
+
     func testLaunchShowsWelcomeScreen() {
         let app = XCUIApplication()
         app.launch()

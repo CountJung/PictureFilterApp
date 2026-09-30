@@ -146,3 +146,12 @@ Apple은 해당 요청으로 이미지에서 개별 사람 마스크를 생성�
 - **색감:** 채널 최댓값 기반 밝기 증가량 제한으로 하이라이트를 보호합니다. 따뜻함은 중립적인 밝기 균형을 유지하도록 조절합니다. 자동 화이트밸런스 추정이나 이미 날아간 하이라이트 복구 기능은 아닙니다. 강한 역광을 완전히 복원한다고 약속하지 않습니다.
 - **검증 범위:** 합성 피부색·회색 계조·다중 영역과 공개 인물 이미지의 사전 비교를 사용합니다. 공개 이미지 한 장의 비교는 실제 실내·야외·역광 촬영의 대표 평가를 대체하지 않으므로 PF-027의 해당 완료 조건은 남깁니다. 피치·역광 별도 프리셋은 보류합니다.
 - **근거:** [Apple CIColorCube](https://developer.apple.com/documentation/coreimage/cicolorcube), [Apple 얼굴 사각형 검출](https://developer.apple.com/documentation/vision/vndetectfacerectanglesrequest). 검토 입력은 [Mdb1909의 Headshot 2026.jpg · CC0](https://commons.wikimedia.org/wiki/File:Headshot_2026.jpg)이며 원본과 출력은 저장소에 추가하지 않습니다.
+
+
+## PF-027 완료 범위 분리와 PF-028 촬영 정책 — 2026-09-30
+
+사용자 요청으로 PF-027의 구현·시뮬레이터 검증을 완료 처리하고 실제 사진 수용 검증을 PF-035로 분리했습니다. 세부 절차와 초기 판정 기준은 [품질 검증표](PORTRAIT_VALIDATION.md)에 있으며, 과거 테스트를 실제 촬영 품질 통과로 바꾸지 않습니다.
+
+PF-028은 Apple의 [AVCam 구성](https://developer.apple.com/documentation/avfoundation/avcam-building-a-camera-app)과 [촬영 데이터 저장](https://developer.apple.com/documentation/avfoundation/saving-captured-photos)을 참고해 직렬 세션 작업·사진 delegate·원본 파일 데이터 전달로 구현했습니다. 현재 세로 화면에서 미리보기와 사진 모두 전면 비반전을 사용합니다. 초점·플래시는 장치 지원 여부에 따르며, 연속 셔터·닫기·백그라운드·세션 중단의 늦은 결과를 차단합니다. 사진 처리 타임아웃은 20초로 정했습니다.
+
+실제 iPhone은 이번 점검에서 `unavailable`이므로 카메라 하드웨어를 검증한 것으로 기록하지 않습니다. 시뮬레이터 대역은 권한·상태·촬영 전달 흐름을 검증하며 실제 렌즈·노출·플래시·방향·복구는 별도 실기기 확인이 필요합니다. PF-028은 구현과 자동 검증을 끝내더라도 실기기 완료 조건이 남으면 열린 상태로 유지합니다.
