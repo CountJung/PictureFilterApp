@@ -4,6 +4,34 @@ import UIKit
 
 @MainActor
 final class EditorModelTests: XCTestCase {
+    func testBrightPortraitControlsClampResetAndDoNotAlterOriginal() async throws {
+        let model = EditorModel(sample: SampleImage.catalog[0])
+        await model.load(SampleImage.catalog[0], using: BundleSampleInput())
+        let original = model.originalData
+        model.selectFilter(.brightPortrait)
+        XCTAssertEqual(model.settings.intensity, 0.5)
+        XCTAssertEqual(model.settings.portraitBrightness, 0.65)
+        XCTAssertEqual(model.settings.portraitWarmth, 0.15)
+        XCTAssertEqual(model.settings.skinSmoothing, 0)
+        let revision = model.previewRevision
+        model.setPortraitBrightness(2)
+        model.setPortraitWarmth(-2)
+        XCTAssertNotEqual(revision, model.previewRevision)
+        XCTAssertEqual(model.settings.portraitBrightness, 1)
+        XCTAssertEqual(model.settings.portraitWarmth, -1)
+        model.setPortraitBrightness(.nan)
+        model.setPortraitWarmth(.infinity)
+        XCTAssertEqual(model.settings.portraitBrightness, 1)
+        XCTAssertEqual(model.settings.portraitWarmth, -1)
+        XCTAssertEqual(model.originalData, original)
+        model.reset()
+        XCTAssertEqual(model.settings, EditSettings())
+        model.selectFilter(.brightPortrait)
+        model.setPortraitBrightness(0)
+        await model.load(SampleImage.catalog[1], using: BundleSampleInput())
+        XCTAssertEqual(model.settings, EditSettings())
+    }
+
     func testResetPreservesOriginalAndRestoresDefaults() async throws {
         let model = EditorModel(sample: SampleImage.catalog[0])
         XCTAssertEqual(model.phase, .idle)

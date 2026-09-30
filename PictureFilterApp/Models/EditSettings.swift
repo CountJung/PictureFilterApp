@@ -1,12 +1,13 @@
 import Foundation
 
 enum PhotoFilter: String, CaseIterable, Identifiable, Sendable {
-    case original, monochrome, sepia, warm, cool, softFilm, goldenHour, cinematic, vivid
+    case brightPortrait, original, monochrome, sepia, warm, cool, softFilm, goldenHour, cinematic, vivid
     static let basic: [PhotoFilter] = [.original, .monochrome, .sepia, .warm, .cool]
     static let styles: [PhotoFilter] = [.softFilm, .goldenHour, .cinematic, .vivid]
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .brightPortrait: return "화사한 인물"
         case .original: return "원본"
         case .monochrome: return "흑백"
         case .sepia: return "세피아"
@@ -23,6 +24,8 @@ enum PhotoFilter: String, CaseIterable, Identifiable, Sendable {
 struct EditSettings: Equatable, Sendable {
     private(set) var filter: PhotoFilter = .original
     private(set) var intensity: Double = 0.5
+    private(set) var portraitBrightness: Double = 0.65
+    private(set) var portraitWarmth: Double = 0.15
     private(set) var skinSmoothing: Double = 0
     private(set) var selectedSkinFaceIndex: Int?
     private(set) var faceSkinSmoothing: [Int: Double] = [:]
@@ -44,6 +47,16 @@ struct EditSettings: Equatable, Sendable {
     mutating func setIntensity(_ value: Double) {
         guard value.isFinite else { return }
         intensity = min(1, max(0, value))
+    }
+
+    mutating func setPortraitBrightness(_ value: Double) {
+        guard value.isFinite else { return }
+        portraitBrightness = min(1, max(0, value))
+    }
+
+    mutating func setPortraitWarmth(_ value: Double) {
+        guard value.isFinite else { return }
+        portraitWarmth = min(1, max(-1, value))
     }
 
     mutating func setSkinSmoothing(_ value: Double) {

@@ -243,7 +243,7 @@ iPhone 16 Pro Max (iOS 26.6.2)에서 테스트용 합성 색상표를 편집해 
 
 ## 후속 수용 검증 · 화사한 인물 사진과 배율 촬영
 
-다음은 후속 검증 계획이며, PF-026 행을 제외하면 **미실행**입니다. 기존 테스트 통과 수치를 새 요구의 완료 증거로 사용하지 않습니다.
+다음은 후속 검증 계획입니다. PF-026 회귀 검증은 완료했고 PF-027 구현·시뮬레이터 검증은 [아래 기록](#pf-027)을 참고합니다. 촬영 환경별 화사함 수용 검증과 나머지 항목은 **미실행**입니다. 기존 테스트 통과 수치를 새 요구의 완료 증거로 사용하지 않습니다.
 
 | 검증 범위 | 확인할 시나리오 | 담당 작업 |
 | --- | --- | --- |
@@ -270,3 +270,33 @@ iPhone 16 Pro Max (iOS 26.6.2)에서 테스트용 합성 색상표를 편집해 
 - macOS 보조 스크립트는 오래된 함수 호출을 수정해 컴파일되지만 실행은 **실패**했습니다. RGB 차이 8 초과 픽셀이 140개로 기존 1,000개 초과 기준을 만족하지 못했습니다. 결과: `.build/PF026-MacValidation.log`. 임계값을 임의로 낮추지 않고 PF-034의 평가 기준 보완으로 남깁니다.
 
 이번 완료 범위는 인물별 편집 상태와 렌더링 일관성입니다. 자연 인물 사진의 주관적 화사함·피부 질감·경계 품질 평가는 PF-027·PF-031·PF-032에서 진행합니다.
+
+
+<a id="pf-027"></a>
+
+## PF-027 화사한 인물 · 시뮬레이터 구현 검증 — 2026-09-30
+
+**구현과 시뮬레이터 검증 완료, 촬영 환경별 대표 사진 품질 확인은 미완료**입니다. 이번 실행에는 연결된 실제 iPhone을 사용하지 않았습니다.
+
+- 환경: iPhone 17 Pro 시뮬레이터, iOS 26.5, 장치 ID `9533B106-C319-4D9A-8527-0AB609143CCB`. 이름+최신 런타임 자동 선택 대신 명시한 ID로 실행했습니다.
+- 결과: **단위 테스트 44개 + UI 테스트 2개 = 46개 통과, 실행 중 실패·건너뜀 0개**. 결과 묶음은 `.build/PF027-Simulator-Final.xcresult`, 실행 로그는 `.build/PF027-Simulator-Final.log`입니다. 실행 대상으로 선택하지 않은 테스트는 이 수에 포함되지 않습니다.
+- 전체 단위 테스트 중 실제 얼굴/피부/분할 경로 관련 8개와 실기기 고해상도 반복 성능 1개를 실행 대상에서 제외했습니다. 제외한 메서드는 `EditorModelTests.testEditorDetectsMultiplePeopleInSyntheticImage`, `FilterRendererTests`의 `testExpressiveStylesKeepGeneratedPortraitFaceDetectable`, `testSyntheticPortraitFixtureExercisesSkinSmoothingRenderPath`, `testPersonSelectionSmoothsOnlySelectedSyntheticPortrait`, `testPortraitLightChangesOnlySelectedSyntheticFace`, `testBothPeopleKeepTheirEditsAcrossSelectionInPreviewAndExport`, `testIndividualResetRestoresOnlyThatPersonDespiteNonzeroGlobalStrength`, `testBackgroundBlurUsesOnDevicePersonMask`, `testRepeatedHighResolutionPreviewAndOutputRecordsSpeedAndThermalState`입니다. 기존 실기기 검증을 시뮬레이터 통과로 다시 세지 않았습니다.
+
+| 검사 | 확인한 결과와 범위 |
+| --- | --- |
+| 원본 보존 | 프리셋 강도 0 및 밝기·따뜻함 모두 0일 때 PNG/JPEG가 각각 원본 렌더와 동일. 원본 데이터, 초기화, 사진 교체 기본값 확인 |
+| 계조 보호 | 0·32·64·128·192·224·240·248·255 회색 패치에서 순서 유지, 그림자·중간 밝기 증가, 248 패치 증가 2 이하, 검정/흰색 유지 |
+| 피부색 범위 | 서로 다른 밝기의 피부색 합성 패치 4개에 최대 밝기와 따뜻함 -1/0/1 적용. 가중 밝기 증가, 채널 순서 보존, 클리핑 없음, 상대 채도 변화 0.08 미만 |
+| 얼굴 영역 | 고정 얼굴 사각형 2개를 주입해 양쪽 영역의 추가 밝기와 영역 사이의 전체 보정값 유지 확인. 편집 대상 선택으로 프리셋 결과 불변 |
+| 미리보기/저장 | 같은 고정 얼굴 영역을 사용한 512px PNG와 1024px JPEG의 대응 영역이 RGB 채널별 오차 3 이내. 실제 검출기의 해상도별 영역 동일성을 의미하지 않음 |
+| 검출 대안 | 실제 검출기를 사용하되 얼굴 없는 입력에서도 전체 톤 보정 결과 생성. 분석 실패와 얼굴 없음은 모두 전체 보정으로 처리 |
+| 화면과 저장 | 새 프리셋 선택 → 밝기·따뜻함 조절 → 원본 누름 비교 후 복귀 → 시뮬레이터 Photos 저장 성공 → 초기화. 기존 얼굴 미검출 안내 UI 회귀도 통과 |
+
+최초 실행은 9개 통과·1개 실패였습니다. 밝은 피부색 패치에서 강한 차가운 색감 설정이 밝기 증가를 상쇄했습니다. 따뜻함을 색 채널 간 공통 여유 범위로 제한하고 가중 밝기를 유지하도록 수정했으며, 밝기 평가는 단순 RGB 합 대신 가중 밝기로 확인합니다. 사전 이미지 비교에서 효과가 약해 중간 밝기 증가량도 조정했고, 최종 회귀 테스트가 통과했습니다. 실행 묶음에 내부 QoS 대기 경고 1개가 남았으며 성능 원인 분석은 PF-033에서 추적합니다.
+
+### 이미지 사전 비교
+
+- 합성 인물: 원본·기본 강도 0.5·최대 강도 1.0 첨부가 `.build/PF027-Simulator-Final.xcresult`에 있습니다. 내보낸 파일은 `.build/PF027-final-attachments/`에 보관합니다. 얼굴 영역은 고정 좌표를 주입했으므로 시뮬레이터 Vision 성공 사례가 아닙니다.
+- 공개 인물 이미지: [Headshot 2026.jpg · Mdb1909 · CC0](https://commons.wikimedia.org/wiki/File:Headshot_2026.jpg)를 임시 입력으로 사용했습니다. **macOS**에서 앱과 같은 렌더링 소스와 실제 검출기를 실행해 얼굴 1개를 확인했습니다. `.build/PF027-PublicReview.log`와 `.build/PF027-public-0.0.png`, `-0.5.png`, `-1.0.png`에 결과를 보관합니다. 원본 및 출력은 Git에 추가하지 않습니다.
+- 전후 육안 확인에서 얼굴의 어두운 부분이 밝아지고 눈·수염·머리카락의 형태와 세부 질감은 유지됐습니다. 최대 강도는 기본보다 밝지만 얼굴을 흐리게 하거나 흰 부분을 넓게 만들지는 않았습니다. 이 한 이미지의 촬영 환경·생성 방식은 별도로 검증하지 않았으며 실제 실내·야외·역광 촬영 평가의 증거로 쓰지 않습니다.
+- 남은 수용 기준: 실제 촬영 환경별 대표 사진, 다양한 피부색·흰옷·강한 역광·가림의 기본/최대 강도 비교 및 사용자 품질 리뷰. PF-027은 이 조건이 남아 열린 상태이며 실제 촬영 통합 평가는 PF-031에서 이어갑니다.

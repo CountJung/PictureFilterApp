@@ -1,6 +1,45 @@
 import XCTest
 
 final class LaunchTests: XCTestCase {
+    func testBrightPortraitControlsCompareResetAndSave() {
+        let app = XCUIApplication()
+        app.launch()
+        app.buttons["start-sample-landscape"].tap()
+        XCTAssertTrue(app.images["imagePreview"].waitForExistence(timeout: 10))
+        app.buttons["filter-brightPortrait"].tap()
+        XCTAssertEqual(app.staticTexts["filterStatus"].label, "선택: 화사한 인물")
+        for identifier in ["portraitBrightnessSlider", "portraitWarmthSlider"] {
+            let slider = app.sliders[identifier]
+            for _ in 0..<6 where !slider.isHittable { app.swipeUp() }
+            XCTAssertTrue(slider.isEnabled)
+            slider.adjust(toNormalizedSliderPosition: 0.8)
+        }
+        let guidance = app.staticTexts["brightPortraitGuidance"]
+        XCTAssertTrue(guidance.exists)
+        let compare = app.staticTexts["compareOriginal"]
+        for _ in 0..<8 where !compare.isHittable { app.swipeDown() }
+        compare.press(forDuration: 0.5)
+        XCTAssertEqual(app.staticTexts["filterStatus"].label, "선택: 화사한 인물")
+        let export = app.buttons["내보내기"]
+        for _ in 0..<12 where !export.isHittable { app.swipeUp() }
+        export.tap()
+        app.buttons["사진 앱에 저장"].tap()
+        let alert = app.alerts.firstMatch
+        if alert.waitForExistence(timeout: 2) {
+            alert.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'allow' OR label CONTAINS[c] '허용' OR label CONTAINS[c] '추가'")).firstMatch.tap()
+        }
+        let status = app.staticTexts["saveStatus"]
+        XCTAssertTrue(status.waitForExistence(timeout: 10))
+        let saved = NSPredicate(format: "label CONTAINS %@", "사진 앱에 저장했습니다")
+        expectation(for: saved, evaluatedWith: status)
+        waitForExpectations(timeout: 15)
+        let reset = app.buttons["초기화"]
+        for _ in 0..<12 where !reset.isHittable { app.swipeUp() }
+        reset.tap()
+        XCTAssertFalse(app.sliders["portraitBrightnessSlider"].exists)
+        XCTAssertEqual(app.staticTexts["filterStatus"].label, "선택: 원본")
+    }
+
     func testLaunchShowsWelcomeScreen() {
         let app = XCUIApplication()
         app.launch()

@@ -55,6 +55,22 @@ final class EditorModel {
         invalidatePreview()
     }
 
+    func setPortraitBrightness(_ value: Double) {
+        guard canEdit else { return }
+        let previous = settings
+        settings.setPortraitBrightness(value)
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
+    func setPortraitWarmth(_ value: Double) {
+        guard canEdit else { return }
+        let previous = settings
+        settings.setPortraitWarmth(value)
+        guard previous != settings else { return }
+        invalidatePreview()
+    }
+
     func setSkinSmoothing(_ value: Double) {
         guard canEdit else { return }
         let previous = settings

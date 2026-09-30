@@ -216,6 +216,26 @@ struct EditorView: View {
             Text(comparingOriginal ? "원본 비교 중" : "선택: " + model.settings.filter.title)
                 .font(.caption).foregroundStyle(.secondary)
                 .accessibilityIdentifier("filterStatus")
+            Text("인물 추천").font(.headline)
+            filterChoices([.brightPortrait])
+            if model.settings.filter == .brightPortrait {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("밝은 부분의 디테일을 지키며 중간 밝기와 그림자를 부드럽게 올립니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Text("밝기")
+                    Slider(value: Binding(get: { model.settings.portraitBrightness }, set: { model.setPortraitBrightness($0) }), in: 0...1)
+                        .accessibilityLabel("화사한 인물 밝기")
+                        .accessibilityIdentifier("portraitBrightnessSlider")
+                    Text("따뜻함")
+                    Slider(value: Binding(get: { model.settings.portraitWarmth }, set: { model.setPortraitWarmth($0) }), in: -1...1)
+                        .accessibilityLabel("화사한 인물 따뜻함")
+                        .accessibilityIdentifier("portraitWarmthSlider")
+                    Text("얼굴을 찾으면 얼굴 중심으로 더 밝게 보정합니다. 찾지 못해도 사진 전체의 밝기와 색감을 조절합니다. 피부 질감은 아래에서 별도로 조절할 수 있습니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                        .accessibilityIdentifier("brightPortraitGuidance")
+                }
+                .disabled(!model.canEdit || isSaving || isShowingFileExporter)
+            }
             Text("기본 필터").font(.headline)
             filterChoices(PhotoFilter.basic)
             Text("사진 스타일").font(.headline)
@@ -316,7 +336,7 @@ struct EditorView: View {
                 }
             }
         }
-        .accessibilityIdentifier(filters == PhotoFilter.basic ? "basicFilterList" : "styleFilterList")
+        .accessibilityIdentifier(filters == [.brightPortrait] ? "portraitFilterList" : (filters == PhotoFilter.basic ? "basicFilterList" : "styleFilterList"))
     }
 
     private var outputControls: some View {

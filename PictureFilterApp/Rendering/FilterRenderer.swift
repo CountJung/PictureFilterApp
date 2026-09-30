@@ -18,6 +18,12 @@ protocol FaceCounting: Sendable {
 }
 
 actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
+    private let portraitFaceDetector: any PortraitFaceDetecting
+
+    init(portraitFaceDetector: any PortraitFaceDetecting = VisionPortraitFaceDetector()) {
+        self.portraitFaceDetector = portraitFaceDetector
+    }
+
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
     private lazy var context = CIContext(options: [.workingColorSpace: colorSpace])
 
@@ -60,6 +66,10 @@ actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
         if settings.filter != .original && settings.intensity > 0 {
             let filtered: CIImage
             switch settings.filter {
+            case .brightPortrait:
+                let faces = portraitFaceDetector.faces(in: thumbnail)
+                filtered = try BrightPortraitFilter.apply(to: original, faces: faces,
+                    brightness: settings.portraitBrightness, warmth: settings.portraitWarmth)
             case .original: filtered = original
             case .monochrome:
                 let filter = CIFilter.colorControls()
