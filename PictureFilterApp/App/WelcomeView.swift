@@ -15,6 +15,23 @@ struct WelcomeView: View {
                     Text("사진을 고르고, 원하는 색감을 찾고, 새로운 이미지로 간직하세요.")
                         .font(.body)
                         .foregroundStyle(.secondary)
+                    NavigationLink {
+                        EditorView(entry: .camera)
+                    } label: {
+                        Label("사진 촬영", systemImage: "camera.fill")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("start-camera")
+                    NavigationLink {
+                        EditorView(entry: .library)
+                    } label: {
+                        Label("사진 선택", systemImage: "photo.badge.plus")
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("start-library")
+                    Text("샘플로 둘러보기").font(.headline)
                     ForEach(SampleImage.catalog) { sample in
                         NavigationLink {
                             EditorView(initialSample: sample)
@@ -22,7 +39,7 @@ struct WelcomeView: View {
                             Label(sample.title + "로 시작", systemImage: "photo")
                                 .frame(maxWidth: .infinity, minHeight: 36)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .accessibilityIdentifier("start-" + sample.id)
                     }
                     Text("샘플 이미지로 먼저 둘러보세요.")

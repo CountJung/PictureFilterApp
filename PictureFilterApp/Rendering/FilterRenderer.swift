@@ -15,13 +15,30 @@ protocol OutputRendering: Sendable {
 
 protocol FaceCounting: Sendable {
     func faceCount(in data: Data) async -> Int
+    func faceAnalysis(in data: Data, retry: Bool) async -> FaceAnalysisState
+    func backgroundAnalysis(in data: Data) async -> FaceAnalysisState
+}
+
+enum FaceAnalysisState: Equatable, Sendable {
+    case idle, analyzing, ready(Int), failed
 }
 
 actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
     private let portraitFaceDetector: any PortraitFaceDetecting
+    private let landmarkDetector: @Sendable (CGImage) throws -> [VNFaceObservation]
+    private let maskDetector: @Sendable (CGImage) throws -> CIImage?
+    private var cachedData: Data?
+    private var analysisImage: CGImage?
+    private var landmarks: Result<[VNFaceObservation], Error>?
+    private var personMask: Result<CIImage?, Error>?
+    private var brightFaces: [CGRect]?
 
-    init(portraitFaceDetector: any PortraitFaceDetecting = VisionPortraitFaceDetector()) {
+    init(portraitFaceDetector: any PortraitFaceDetecting = VisionPortraitFaceDetector(),
+         landmarkDetector: @escaping @Sendable (CGImage) throws -> [VNFaceObservation] = { try FilterRenderer.detectLandmarks($0) },
+         maskDetector: @escaping @Sendable (CGImage) throws -> CIImage? = { try PortraitEffects.personMask(source: $0) }) {
         self.portraitFaceDetector = portraitFaceDetector
+        self.landmarkDetector = landmarkDetector
+        self.maskDetector = maskDetector
     }
 
     private let colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
@@ -36,23 +53,63 @@ actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
     }
 
     func faceCount(in data: Data) async -> Int {
+        if case .ready(let count) = await faceAnalysis(in: data, retry: false) { return count }
+        return 0
+    }
+
+    func faceAnalysis(in data: Data, retry: Bool = false) async -> FaceAnalysisState {
+        do {
+            try prepareAnalysis(data)
+            if retry { landmarks = nil; personMask = nil; brightFaces = nil }
+            return .ready(try cachedLandmarks().count)
+        } catch { return .failed }
+    }
+
+    func backgroundAnalysis(in data: Data) async -> FaceAnalysisState {
+        guard data == cachedData, let personMask else { return .idle }
+        switch personMask {
+        case .success(let mask): return .ready(mask == nil ? 0 : 1)
+        case .failure: return .failed
+        }
+    }
+
+    private static func detectLandmarks(_ image: CGImage) throws -> [VNFaceObservation] {
+        let request = VNDetectFaceLandmarksRequest()
+        try VNImageRequestHandler(cgImage: image, orientation: .up).perform([request])
+        return request.results ?? []
+    }
+
+    private func prepareAnalysis(_ data: Data) throws {
+        try Task.checkCancellation()
+        if cachedData == data { return }
+        cachedData = nil; analysisImage = nil; landmarks = nil; personMask = nil; brightFaces = nil
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
                 kCGImageSourceCreateThumbnailWithTransform: true,
-                kCGImageSourceThumbnailMaxPixelSize: 1000
-              ] as CFDictionary) else { return 0 }
-        let request = VNDetectFaceLandmarksRequest()
-        do {
-            try VNImageRequestHandler(cgImage: image, orientation: .up).perform([request])
-            return request.results?.count ?? 0
-        } catch {
-            return 0
+                kCGImageSourceThumbnailMaxPixelSize: 1600
+              ] as CFDictionary) else { throw ImageServiceError.invalidImage }
+        cachedData = data
+        analysisImage = image
+    }
+
+    private func cachedLandmarks() throws -> [VNFaceObservation] {
+        try Task.checkCancellation()
+        if landmarks == nil, let image = analysisImage {
+            landmarks = Result { try landmarkDetector(image).sorted { $0.boundingBox.midX < $1.boundingBox.midX } }
         }
+        return try landmarks?.get() ?? []
+    }
+
+    private func cachedPersonMask() throws -> CIImage? {
+        try Task.checkCancellation()
+        if personMask == nil, let image = analysisImage { personMask = Result { try maskDetector(image) } }
+        return try personMask?.get() ?? nil
     }
 
     private func render(_ data: Data, settings: EditSettings, maxDimension: Int, jpegQuality: CGFloat?) throws -> Data {
         try Task.checkCancellation()
+        try prepareAnalysis(data)
         guard maxDimension > 0,
               let source = CGImageSourceCreateWithData(data as CFData, nil),
               let thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
@@ -67,7 +124,8 @@ actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
             let filtered: CIImage
             switch settings.filter {
             case .brightPortrait:
-                let faces = portraitFaceDetector.faces(in: thumbnail)
+                if brightFaces == nil, let image = analysisImage { brightFaces = portraitFaceDetector.faces(in: image) }
+                let faces = brightFaces ?? []
                 filtered = try BrightPortraitFilter.apply(to: original, faces: faces,
                     brightness: settings.portraitBrightness, warmth: settings.portraitWarmth)
             case .original: filtered = original
@@ -118,15 +176,17 @@ actor FilterRenderer: PreviewRendering, OutputRendering, FaceCounting {
         if settings.skinSmoothing > 0 || settings.faceSkinSmoothing.values.contains(where: { $0 > 0 }) {
             result = try FaceSkinSmoother.apply(to: result, source: thumbnail,
                                                 allIntensity: settings.skinSmoothing,
-                                                faceIntensities: settings.faceSkinSmoothing)
+                                                faceIntensities: settings.faceSkinSmoothing,
+                                                analyzedFaces: (try? cachedLandmarks()) ?? [])
         }
         if settings.portraitLight > 0 || settings.facePortraitLight.values.contains(where: { $0 > 0 }) {
             result = PortraitEffects.applyLighting(to: result, source: thumbnail,
                                                    allIntensity: settings.portraitLight,
-                                                   faceIntensities: settings.facePortraitLight)
+                                                   faceIntensities: settings.facePortraitLight,
+                                                   analyzedFaces: (try? cachedLandmarks()) ?? [])
         }
         if settings.backgroundBlur > 0 {
-            result = PortraitEffects.applyBackgroundBlur(to: result, source: thumbnail,
+            result = PortraitEffects.applyBackgroundBlur(to: result, mask: try? cachedPersonMask(),
                                                         intensity: settings.backgroundBlur)
         }
         try Task.checkCancellation()

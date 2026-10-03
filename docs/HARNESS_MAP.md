@@ -115,3 +115,26 @@ Xcode → Settings → Accounts에서 개인 팀의 Manage Certificates를 열�
 - [공식 훅 문서](https://learn.chatgpt.com/docs/hooks)에 따르면 명령 훅은 세션 cwd에서 실행됩니다. 따라서 현재 세션의 사라진 cwd가 훅 실행을 방해할 수 있음이 재현됐습니다. 앱 로그에서 개별 훅의 전체 stderr를 얻은 것은 아니므로 모든 과거 훅 오류가 동일 원인이라고 단정하지 않습니다.
 - **남은 조치:** 이 대화를 내장 경로로 재개해야 합니다. 프로젝트 등록 변경과 개별 대화의 cwd는 별개입니다. 현재 제공된 앱 도구에는 실행 중인 이 대화의 cwd 변경 기능이 없으며, 다른 대화 이동 도구도 호출 중인 대화 자체를 이동할 수 없습니다. 사용자가 내장 `picfilterapp` 프로젝트에서 작업을 다시 열거나 그 경로에서 이어갈 때 훅 실행을 재확인해야 합니다. 실제 작업 파일과 커밋은 이미 내장 저장소에 있습니다.
 - 전역 Serena 훅은 다른 프로젝트에도 영향을 주므로 이번 점검에서 제거·무력화하지 않았습니다. 존재하지 않는 외장 마운트 경로를 흉내 내는 링크나 앱 내부 DB 직접 수정도 하지 않았습니다. 새 경로에서 실패가 계속되면 훅 오류의 실제 stderr를 확인하여 별도 원인으로 분리합니다.
+
+
+## 시뮬레이터 대상 지정 — PF-034
+
+`build-ios.sh`, `test-ios.sh`, `run-simulator.sh`는 `lib.sh`와 `select-simulator.py`의 동일한 선택 규칙을 사용합니다. 기본 이름은 iPhone 17 Pro이며 설치된 사용 가능 iOS 장치 중 정확히 하나일 때만 진행합니다. 선택 결과의 이름·런타임·ID가 로그에 표시됩니다.
+
+```bash
+# 특정 장치 고정
+IOS_SIMULATOR_UDID=9533B106-C319-4D9A-8527-0AB609143CCB bash scripts/test-ios.sh
+# 같은 이름이 여러 OS에 있을 때 런타임 고정
+IOS_SIMULATOR_NAME='iPhone 17 Pro' IOS_SIMULATOR_RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-26-5 bash scripts/build-ios.sh
+# 선택 규칙 회귀 검증
+python3 scripts/test_simulator_selection.py
+```
+
+ID를 지정하면 기본 이름보다 우선하며, 런타임도 지정했다면 일치해야 합니다. 실제 설치 목록은 `xcrun simctl list devices available`로 확인합니다. 없는 ID·중복 이름·충돌하는 런타임은 빌드 전에 실패합니다. 실행 근거는 [E2E](E2E.md#pf-034-selection)에 기록합니다.
+
+### 테스트 프로필
+
+- 기본 `IOS_TEST_PROFILE=simulator`: 실기기 Vision/반복 성능 9개를 명시적으로 제외하고 각 이름을 `미실행 (실기기 전용)`으로 출력합니다. 시뮬레이터 통과 수에 포함하지 않습니다.
+- `IOS_TEST_PROFILE=device IOS_DEVICE_UDID=<실기기 ID> bash scripts/test-ios.sh`: 위 9개만 실제 기기에서 실행합니다. ID가 없으면 중단하며 시뮬레이터로 대체하지 않습니다. 실제 카메라 수용 절차 PF-028-V01~V05는 별도입니다.
+- `python3 scripts/test_test_profiles.py`: 실제 기기를 실행하지 않고 프로필 선택·대상·제외 보고를 검사합니다.
+- macOS 피부 보정 검증은 동일 색 변환 경로에서 강도 0 바이트 일치, 얼굴 내부 변화 존재, 전체 흐림 대비 원본 보존, 얼굴+페더 영역 밖 최대 1/255 오차를 검사합니다. 실제 피부의 자연스러움 판정은 PF-035에서 별도로 진행합니다.

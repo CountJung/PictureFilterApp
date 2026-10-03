@@ -16,6 +16,10 @@ private actor TestCamera: CameraServing {
     private var pending: CheckedContinuation<Data, Error>?
     private var starting: CheckedContinuation<CameraCapabilities, Error>?
     private var holdStart = false
+    private var heldZoom: CheckedContinuation<Void, Never>?
+    var holdZoom = false
+    var zoomCalls: [Double] = []
+    var zoomFailure = false
 
     init(failure: CameraFailure? = nil, holdStart: Bool = false) {
         let stream = AsyncStream<CameraEvent>.makeStream()
@@ -37,10 +41,24 @@ private actor TestCamera: CameraServing {
         state.isFront.toggle()
         state.flashModes = state.isFront ? [.off] : [.off, .auto, .on]
         state.exposureBias = 0
+        state.zoom = CameraZoom(minimum: 1, maximum: state.isFront ? 3 : 12,
+                                value: state.isFront ? 1 : 2, displayMultiplier: state.isFront ? 1 : 0.5,
+                                lensBoundaries: state.isFront ? [] : [2, 6])
         return state
     }
     func focus(at point: CGPoint) async throws { lastFocus = point }
     func setExposure(_ value: Float) async throws { exposure = value; state.exposureBias = value }
+    func setZoom(_ value: Double) async throws -> CameraCapabilities {
+        zoomCalls.append(value)
+        if holdZoom { await withCheckedContinuation { heldZoom = $0 } }
+        if zoomFailure { throw CameraFailure.configuration }
+        state.zoom.value = state.zoom.clamped(value)
+        return state
+    }
+    func configureZoom(_ zoom: CameraZoom) { state.zoom = zoom }
+    func delayZoom() { holdZoom = true }
+    func releaseZoom() { holdZoom = false; heldZoom?.resume(); heldZoom = nil }
+    func failZoom() { zoomFailure = true }
     func capture(flash: CameraFlash) async throws -> Data {
         captures += 1
         selectedFlash = flash
@@ -51,6 +69,94 @@ private actor TestCamera: CameraServing {
 
 @MainActor
 final class CameraModelTests: XCTestCase {
+    func testZoomRangeSanitizesInvalidValuesAndUsesOnlySupportedStops() {
+        let zoom = CameraZoom(minimum: 1, maximum: 10, value: 99, displayMultiplier: 0.5,
+                              lensBoundaries: [0.5, 2, 6, 6, 20, .nan], upscaleThreshold: 6)
+        XCTAssertEqual(zoom.range, 1...10)
+        XCTAssertEqual(zoom.displayRange, 0.5...5)
+        XCTAssertEqual(zoom.displayValue, 5)
+        XCTAssertEqual(zoom.stops, [1, 2, 6])
+        XCTAssertTrue(zoom.usesDigitalUpscaling)
+        let invalid = CameraZoom(minimum: .nan, maximum: -.infinity, value: .nan, displayMultiplier: 0)
+        XCTAssertEqual(invalid, CameraZoom())
+    }
+
+    func testZoomClampsDisplayInputAndResetsForFrontCamera() async {
+        let service = TestCamera()
+        await service.configureZoom(CameraZoom(minimum: 1, maximum: 12, value: 2, displayMultiplier: 0.5, lensBoundaries: [2, 6]))
+        let model = CameraModel(service: service)
+        await model.start()
+        for (requested, expected) in [(-1.0, 0.5), (1.0, 1.0), (3.0, 3.0), (99.0, 6.0)] {
+            await model.setZoom(requested)
+            XCTAssertEqual(model.zoom.displayValue, expected)
+        }
+        let before = await service.zoomCalls
+        await model.setZoom(.nan)
+        await model.setZoom(.infinity)
+        let after = await service.zoomCalls
+        XCTAssertEqual(before, after)
+        await model.switchCamera()
+        XCTAssertEqual(model.zoom.displayValue, 1)
+        XCTAssertEqual(model.zoom.displayRange, 1...3)
+        XCTAssertTrue(model.zoom.lensBoundaries.isEmpty)
+    }
+
+    func testRapidZoomKeepsLatestRequestAndBlocksCaptureUntilSettled() async throws {
+        let service = TestCamera()
+        await service.configureZoom(CameraZoom(minimum: 1, maximum: 10))
+        await service.delayZoom()
+        let model = CameraModel(service: service)
+        await model.start()
+        let first = Task { await model.setZoom(2) }
+        try await waitFor { await service.zoomCalls.count == 1 }
+        XCTAssertFalse(model.canCapture)
+        await model.setZoom(4)
+        await model.setZoom(7)
+        await model.switchCamera()
+        XCTAssertFalse(model.capabilities.isFront)
+        await service.releaseZoom()
+        await first.value
+        let calls = await service.zoomCalls
+        XCTAssertEqual(calls, [2, 7])
+        XCTAssertEqual(model.zoom.value, 7)
+        XCTAssertTrue(model.canCapture)
+    }
+
+    func testClosedCameraIgnoresLateZoomAndFailuresRemainRecoverable() async throws {
+        let service = TestCamera()
+        await service.configureZoom(CameraZoom(minimum: 1, maximum: 5))
+        await service.delayZoom()
+        let model = CameraModel(service: service)
+        await model.start()
+        let operation = Task { await model.setZoom(4) }
+        try await waitFor { await service.zoomCalls.count == 1 }
+        await model.stop()
+        await service.releaseZoom()
+        await operation.value
+        XCTAssertEqual(model.phase, .idle)
+        XCTAssertEqual(model.zoom.value, 1)
+        await model.start()
+        await service.failZoom()
+        await model.setZoom(3)
+        XCTAssertTrue(model.canCapture)
+        XCTAssertNotNil(model.message)
+    }
+
+    func testChangedZoomCapabilitiesRefreshCurrentRangeWithoutRecoveringInterruption() async throws {
+        let service = TestCamera()
+        let model = CameraModel(service: service)
+        await model.start()
+        let state = CameraCapabilities(zoom: CameraZoom(minimum: 2, maximum: 4, value: 9, displayMultiplier: 0.5))
+        service.sink.yield(.capabilitiesChanged(state))
+        try await waitFor { model.zoom.displayRange == 1...2 }
+        XCTAssertEqual(model.zoom.displayValue, 2)
+        service.sink.yield(.interrupted)
+        try await waitFor { model.phase == .interrupted }
+        service.sink.yield(.capabilitiesChanged(CameraCapabilities()))
+        await Task.yield()
+        XCTAssertEqual(model.phase, .interrupted)
+    }
+
     private func waitFor(_ condition: () async -> Bool) async throws {
         for _ in 0..<100 {
             if await condition() { return }

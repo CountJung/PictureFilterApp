@@ -35,27 +35,54 @@ struct FaceSmoothingValidation {
         CGImageDestinationAddImage(destination, rendered, nil)
         guard CGImageDestinationFinalize(destination) else { fatalError("Could not save output image") }
 
-        let before = pixels(original, colorSpace: colorSpace)
+        func render(_ image: CIImage) -> CGImage {
+            context.createCGImage(image, from: input.extent, format: .RGBA8, colorSpace: colorSpace)!
+        }
+        // Compare identical rendering/color-conversion paths, not decoded JPEG
+        // bytes against a color-managed output.
+        let before = pixels(render(input), colorSpace: colorSpace)
         let after = pixels(rendered, colorSpace: colorSpace)
-        var changedPixels = 0
-        var changedBounds = CGRect.null
+        let zero = try FaceSkinSmoother.apply(to: input, source: original, allIntensity: 0, faceIntensities: [:])
+        guard pixels(render(zero), colorSpace: colorSpace) == before else {
+            fatalError("Zero intensity changed source pixels")
+        }
+        let fullBlur = input.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [
+            kCIInputRadiusKey: max(1, min(input.extent.width, input.extent.height) * 0.004)
+        ]).cropped(to: input.extent)
+        let blurred = pixels(render(fullBlur), colorSpace: colorSpace)
+        let box = faces[0].boundingBox
+        // CGContext pixel rows use the same bottom-left coordinates as Vision.
+        let faceRect = CGRect(x: box.minX * CGFloat(original.width), y: box.minY * CGFloat(original.height),
+                              width: box.width * CGFloat(original.width), height: box.height * CGFloat(original.height))
+        let featherMargin = max(1, min(input.extent.width, input.extent.height) * 0.012) * 4
+        let protectedBackground = faceRect.insetBy(dx: -featherMargin, dy: -featherMargin)
+        var faceDelta = 0.0
+        var blurDelta = 0.0
+        var faceSamples = 0
+        var backgroundMaxDelta = 0
         for y in 0..<original.height {
             for x in 0..<original.width {
+                let point = CGPoint(x: x, y: y)
                 let offset = (y * original.width + x) * 4
-                let delta = max(abs(Int(before[offset]) - Int(after[offset])),
-                                max(abs(Int(before[offset + 1]) - Int(after[offset + 1])),
-                                    abs(Int(before[offset + 2]) - Int(after[offset + 2]))))
-                if delta > 8 {
-                    changedPixels += 1
-                    changedBounds = changedBounds.union(CGRect(x: x, y: y, width: 1, height: 1))
+                for channel in 0..<3 {
+                    let delta = abs(Int(before[offset + channel]) - Int(after[offset + channel]))
+                    if faceRect.contains(point) {
+                        faceDelta += Double(delta)
+                        blurDelta += Double(abs(Int(before[offset + channel]) - Int(blurred[offset + channel])))
+                        faceSamples += 1
+                    } else if !protectedBackground.contains(point) {
+                        backgroundMaxDelta = max(backgroundMaxDelta, delta)
+                    }
                 }
             }
         }
-        guard changedPixels > 1_000 else {
-            fatalError("Skin smoothing did not change enough pixels (\(changedPixels))")
-        }
-        print("Detected \(faces.count) face with landmarks; changed \(changedPixels) pixels. Output: \(outputURL.path)")
-        print("Changed pixel bounds: \(changedBounds.integral)")
+        guard faceSamples > 0, faceDelta > 0 else { fatalError("No effect inside detected face") }
+        guard faceDelta < blurDelta else { fatalError("Partial smoothing must preserve more source detail than full blur") }
+        guard backgroundMaxDelta <= 1 else { fatalError("Effect leaked outside feathered face: \(backgroundMaxDelta)") }
+        print("PASS: one landmark face; zero intensity preserves all pixels")
+        print("Face mean delta: \(faceDelta / Double(faceSamples)); full blur: \(blurDelta / Double(faceSamples))")
+        print("Background max delta: \(backgroundMaxDelta); output: \(outputURL.path)")
+        print("Scope: macOS synthetic regression only; natural skin quality and iPhone Vision remain unverified.")
     }
 
     private static func pixels(_ image: CGImage, colorSpace: CGColorSpace) -> [UInt8] {

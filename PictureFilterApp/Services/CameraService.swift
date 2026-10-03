@@ -1,6 +1,31 @@
 import AVFoundation
 import Foundation
 
+struct CameraZoom: Equatable, Sendable {
+    let range: ClosedRange<Double>
+    let displayMultiplier: Double
+    let lensBoundaries: [Double]
+    let upscaleThreshold: Double
+    var value: Double
+
+    init(minimum: Double = 1, maximum: Double = 1, value: Double = 1,
+         displayMultiplier: Double = 1, lensBoundaries: [Double] = [], upscaleThreshold: Double = 1) {
+        let lower = minimum.isFinite && minimum > 0 ? minimum : 1
+        let upper = maximum.isFinite ? max(lower, maximum) : lower
+        range = lower...upper
+        self.displayMultiplier = displayMultiplier.isFinite && displayMultiplier > 0 ? displayMultiplier : 1
+        self.value = value.isFinite ? min(upper, max(lower, value)) : lower
+        self.lensBoundaries = Array(Set(lensBoundaries.filter { $0.isFinite && (lower...upper).contains($0) })).sorted()
+        self.upscaleThreshold = upscaleThreshold.isFinite ? max(lower, upscaleThreshold) : upper
+    }
+
+    var displayValue: Double { value * displayMultiplier }
+    var displayRange: ClosedRange<Double> { (range.lowerBound * displayMultiplier)...(range.upperBound * displayMultiplier) }
+    var stops: [Double] { Array(Set([range.lowerBound] + lensBoundaries + [1 / displayMultiplier].filter { range.contains($0) })).sorted() }
+    var usesDigitalUpscaling: Bool { value > upscaleThreshold }
+    func clamped(_ value: Double) -> Double { min(range.upperBound, max(range.lowerBound, value)) }
+}
+
 struct CameraCapabilities: Equatable, Sendable {
     var isFront = false
     var canSwitch = false
@@ -8,6 +33,7 @@ struct CameraCapabilities: Equatable, Sendable {
     var exposureBias: Float = 0
     var exposureRange: ClosedRange<Float> = 0...0
     var flashModes: [CameraFlash] = [.off]
+    var zoom = CameraZoom()
 }
 
 enum CameraFlash: String, CaseIterable, Sendable {
@@ -35,6 +61,7 @@ enum CameraFailure: Error, Equatable, LocalizedError {
 }
 
 enum CameraEvent: Sendable {
+    case capabilitiesChanged(CameraCapabilities)
     case interrupted
     case recovered(CameraCapabilities)
     case failed(CameraFailure)
@@ -48,6 +75,7 @@ protocol CameraServing: AnyObject, Sendable {
     func switchCamera() async throws -> CameraCapabilities
     func focus(at point: CGPoint) async throws
     func setExposure(_ value: Float) async throws
+    func setZoom(_ value: Double) async throws -> CameraCapabilities
     func capture(flash: CameraFlash) async throws -> Data
 }
 
@@ -66,6 +94,7 @@ final class CameraService: NSObject, CameraServing, AVCapturePhotoCaptureDelegat
     private var interrupted = false
     private var pending: (id: Int64, continuation: CheckedContinuation<Data, Error>)?
     private var processedData: Data?
+    private var deviceObservations: [NSKeyValueObservation] = []
 
     override init() {
         let stream = AsyncStream<CameraEvent>.makeStream()
@@ -152,8 +181,8 @@ final class CameraService: NSObject, CameraServing, AVCapturePhotoCaptureDelegat
     }
 
     private func configure() throws {
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
-                ?? AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) else { throw CameraFailure.unavailable }
+        guard let device = preferredDevice(position: .back)
+                ?? preferredDevice(position: .front) else { throw CameraFailure.unavailable }
         let newInput = try AVCaptureDeviceInput(device: device)
         captureSession.beginConfiguration()
         defer { captureSession.commitConfiguration() }
@@ -166,6 +195,7 @@ final class CameraService: NSObject, CameraServing, AVCapturePhotoCaptureDelegat
         }
         captureSession.addOutput(photoOutput)
         input = newInput
+        observeDevice(device)
         photoOutput.maxPhotoQualityPrioritization = .quality
     }
 
@@ -177,14 +207,76 @@ final class CameraService: NSObject, CameraServing, AVCapturePhotoCaptureDelegat
             supportsFocus: device.isFocusPointOfInterestSupported || device.isExposurePointOfInterestSupported,
             exposureBias: device.exposureTargetBias,
             exposureRange: max(-2, device.minExposureTargetBias)...min(2, device.maxExposureTargetBias),
-            flashModes: CameraFlash.allCases.filter { photoOutput.supportedFlashModes.contains($0.avMode) })
+            flashModes: CameraFlash.allCases.filter { photoOutput.supportedFlashModes.contains($0.avMode) },
+            zoom: zoomCapabilities(device))
+    }
+
+    private func preferredDevice(position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        let types: [AVCaptureDevice.DeviceType] = position == .back
+            ? [.builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera, .builtInWideAngleCamera]
+            : [.builtInWideAngleCamera]
+        return types.lazy.compactMap { AVCaptureDevice.default($0, for: .video, position: position) }.first
+    }
+
+    private func zoomCapabilities(_ device: AVCaptureDevice) -> CameraZoom {
+        let boundaries = device.virtualDeviceSwitchOverVideoZoomFactors.map(\.doubleValue)
+        let multiplier: Double
+        if #available(iOS 18.0, *) { multiplier = Double(device.displayVideoZoomFactorMultiplier) }
+        else if let wideIndex = device.constituentDevices.firstIndex(where: { $0.deviceType == .builtInWideAngleCamera }),
+                wideIndex > 0, boundaries.indices.contains(wideIndex - 1) {
+            multiplier = 1 / boundaries[wideIndex - 1]
+        } else { multiplier = 1 }
+        return CameraZoom(minimum: Double(device.minAvailableVideoZoomFactor),
+                          maximum: Double(min(device.maxAvailableVideoZoomFactor, device.activeFormat.videoMaxZoomFactor)),
+                          value: Double(device.videoZoomFactor), displayMultiplier: multiplier,
+                          lensBoundaries: boundaries, upscaleThreshold: Double(device.activeFormat.videoZoomFactorUpscaleThreshold))
+    }
+
+    private func observeDevice(_ device: AVCaptureDevice) {
+        deviceObservations.removeAll()
+        let changed: (AVCaptureDevice) -> Void = { [weak self] device in
+            self?.queue.async { [weak self] in
+                guard let self, self.input?.device === device, self.desiredRunning else { return }
+                let zoom = self.zoomCapabilities(device)
+                if Double(device.videoZoomFactor) != zoom.value {
+                    do {
+                        try device.lockForConfiguration()
+                        device.videoZoomFactor = CGFloat(zoom.value)
+                        device.unlockForConfiguration()
+                    } catch {
+                        self.eventSink.yield(.failed(.configuration))
+                        return
+                    }
+                }
+                self.eventSink.yield(.capabilitiesChanged(self.capabilities()))
+            }
+        }
+        deviceObservations = [
+            device.observe(\.activeFormat) { device, _ in changed(device) },
+            device.observe(\.minAvailableVideoZoomFactor) { device, _ in changed(device) },
+            device.observe(\.maxAvailableVideoZoomFactor) { device, _ in changed(device) }
+        ]
+        if #available(iOS 18.0, *) {
+            deviceObservations.append(device.observe(\.displayVideoZoomFactorMultiplier) { device, _ in changed(device) })
+        }
+    }
+
+    func setZoom(_ value: Double) async throws -> CameraCapabilities {
+        try await perform {
+            guard value.isFinite, self.desiredRunning, !self.interrupted, self.pending == nil,
+                  let device = self.input?.device else { throw CameraFailure.busy }
+            try device.lockForConfiguration()
+            defer { device.unlockForConfiguration() }
+            device.videoZoomFactor = CGFloat(self.zoomCapabilities(device).clamped(value))
+            return self.capabilities()
+        }
     }
 
     func switchCamera() async throws -> CameraCapabilities {
         try await perform {
             guard self.desiredRunning, !self.interrupted, self.pending == nil, let old = self.input else { throw CameraFailure.busy }
             let position: AVCaptureDevice.Position = old.device.position == .front ? .back : .front
-            guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position) else { throw CameraFailure.unavailable }
+            guard let device = self.preferredDevice(position: position) else { throw CameraFailure.unavailable }
             let replacement = try AVCaptureDeviceInput(device: device)
             self.captureSession.beginConfiguration()
             self.captureSession.removeInput(old)
@@ -196,8 +288,10 @@ final class CameraService: NSObject, CameraServing, AVCapturePhotoCaptureDelegat
             self.captureSession.addInput(replacement)
             self.input = replacement
             self.captureSession.commitConfiguration()
+            self.observeDevice(device)
             try device.lockForConfiguration()
             device.setExposureTargetBias(0)
+            device.videoZoomFactor = CGFloat(self.zoomCapabilities(device).clamped(1 / self.zoomCapabilities(device).displayMultiplier))
             device.unlockForConfiguration()
             return self.capabilities()
         }

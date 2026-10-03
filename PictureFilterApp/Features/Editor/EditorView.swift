@@ -4,7 +4,8 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct EditorView: View {
-    let initialSample: SampleImage
+    enum Entry { case sample, camera, library }
+    private let entry: Entry
     @Environment(\.imageServices) private var services
     @State private var model: EditorModel
     @State private var selectedSample: SampleImage
@@ -20,11 +21,36 @@ struct EditorView: View {
     @State private var shouldOpenPhotoSettings = false
     @GestureState private var comparingOriginal = false
     @State private var requestID = UUID()
+    @State private var shouldLoadSample: Bool
+    @State private var didStartEntry = false
 
     init(initialSample: SampleImage) {
-        self.initialSample = initialSample
-        _model = State(initialValue: EditorModel(sample: initialSample))
+        entry = .sample
+        _shouldLoadSample = State(initialValue: true)
+        _model = State(initialValue: Self.makeModel(sample: initialSample))
         _selectedSample = State(initialValue: initialSample)
+    }
+
+    init(entry: Entry) {
+        self.entry = entry
+        let empty = SampleImage(id: "empty", title: "사진을 촬영하거나 선택하세요")
+        _model = State(initialValue: Self.makeModel(sample: empty))
+        _selectedSample = State(initialValue: empty)
+        _shouldLoadSample = State(initialValue: false)
+    }
+
+    private static func makeModel(sample: SampleImage) -> EditorModel {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--ui-test-no-faces") {
+            return EditorModel(sample: sample, renderer: FilterRenderer(landmarkDetector: { _ in [] }))
+        }
+        if ProcessInfo.processInfo.arguments.contains("--ui-test-face-failure") {
+            return EditorModel(sample: sample, renderer: FilterRenderer(landmarkDetector: { _ in
+                throw ImageServiceError.inputUnavailable
+            }))
+        }
+        #endif
+        return EditorModel(sample: sample)
     }
 
     var body: some View {
@@ -43,6 +69,7 @@ struct EditorView: View {
                 .disabled(isSaving || isShowingFileExporter)
                 .accessibilityIdentifier("pickPhoto")
                 Button {
+                    pickerItem = nil
                     isShowingCamera = true
                 } label: {
                     Label("카메라로 촬영", systemImage: "camera")
@@ -54,7 +81,12 @@ struct EditorView: View {
                 photoPreview
                 if let errorMessage = model.errorMessage {
                     Text(errorMessage).foregroundStyle(.red)
-                    Button("다시 시도") { requestID = UUID() }
+                    Button("다시 시도") {
+                        if SampleImage.catalog.contains(where: { $0.id == selectedSample.id }) {
+                            shouldLoadSample = true
+                            requestID = UUID()
+                        } else { isShowingPhotoPicker = true }
+                    }
                 }
                 if let error = model.renderError {
                     Text(error).foregroundStyle(.red)
@@ -102,6 +134,7 @@ struct EditorView: View {
                     ForEach(SampleImage.catalog) { sample in
                         Button(sample.title) {
                             selectedSample = sample
+                            shouldLoadSample = true
                             pickerItem = nil
                             saveMessage = nil
                             saveRetryTarget = nil
@@ -118,7 +151,16 @@ struct EditorView: View {
             await model.refreshPreview()
         }
         .task(id: requestID) {
-            await model.load(selectedSample, using: services.input)
+            if shouldLoadSample {
+                shouldLoadSample = false
+                await model.load(selectedSample, using: services.input)
+            }
+        }
+        .task {
+            guard !didStartEntry else { return }
+            didStartEntry = true
+            if entry == .camera { isShowingCamera = true }
+            if entry == .library { isShowingPhotoPicker = true }
         }
         .task(id: pickerItem) {
             guard let pickerItem else { return }
@@ -127,20 +169,21 @@ struct EditorView: View {
                     throw ImageServiceError.inputUnavailable
                 }
                 try Task.checkCancellation()
-                model.load(data, title: "선택한 사진")
+                model.replacePhoto(data, title: "선택한 사진")
                 saveMessage = nil
                 saveRetryTarget = nil
                 shouldOpenPhotoSettings = false
             } catch {
                 guard !Task.isCancelled else { return }
-                model.failLoading(error)
+                model.reportReplacementFailure(error)
             }
         }
         .photosPicker(isPresented: $isShowingPhotoPicker, selection: $pickerItem, matching: .images, photoLibrary: .shared())
         .sheet(isPresented: $isShowingCamera) {
             CameraCaptureSheet { data in
                 defer { isShowingCamera = false }
-                model.load(data, title: "카메라 사진")
+                pickerItem = nil
+                model.loadCapture(data)
                 selectedSample = model.sample
                 saveMessage = nil
                 saveRetryTarget = nil
@@ -155,7 +198,7 @@ struct EditorView: View {
                 let hasAccess = url.startAccessingSecurityScopedResource()
                 defer { if hasAccess { url.stopAccessingSecurityScopedResource() } }
                 let data = try Data(contentsOf: url)
-                model.load(data, title: url.deletingPathExtension().lastPathComponent)
+                model.replacePhoto(data, title: url.deletingPathExtension().lastPathComponent)
                 selectedSample = model.sample
                 saveMessage = nil
                 saveRetryTarget = nil
@@ -245,6 +288,15 @@ struct EditorView: View {
             }
             VStack(alignment: .leading) {
                 Text("인물 보정")
+                if model.faceAnalysis == .analyzing {
+                    ProgressView("인물 분석 중")
+                        .accessibilityIdentifier("faceAnalysisProgress")
+                } else if model.faceAnalysis == .failed {
+                    Text("인물 분석에 실패해 얼굴 보정이 적용되지 않습니다.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                    Button("인물 분석 다시 시도") { model.retryFaceAnalysis() }
+                        .accessibilityIdentifier("retryFaceAnalysis")
+                }
                 if model.detectedFaceCount > 1 {
                     Picker("보정 대상", selection: Binding<Int?>(
                         get: { model.settings.selectedSkinFaceIndex },
@@ -260,7 +312,7 @@ struct EditorView: View {
                         .font(.footnote).foregroundStyle(.secondary)
                 } else if model.detectedFaceCount == 1 {
                     Text("인물 1").font(.subheadline).foregroundStyle(.secondary)
-                } else if model.detectedFaceCount == 0 && model.canEdit {
+                } else if model.faceAnalysis == .ready(0) {
                     Text("인물을 찾지 못하면 원본을 유지합니다.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Text(model.settings.selectedSkinFaceIndex == nil
@@ -296,7 +348,7 @@ struct EditorView: View {
                     .disabled(!model.canEdit || model.detectedFaceCount == 0 || isSaving || isShowingFileExporter)
                     .accessibilityLabel("인물 조명 강도")
                     .accessibilityIdentifier("portraitLightSlider")
-                Text(model.detectedFaceCount == 0 ? "얼굴을 찾지 못해 조명 보정을 사용할 수 없습니다." : "얼굴 윤곽 안쪽에 부드러운 빛을 더합니다.")
+                Text(model.faceAnalysis == .ready(0) ? "얼굴을 찾지 못해 조명 보정을 사용할 수 없습니다." : "얼굴 윤곽 안쪽에 부드러운 빛을 더합니다.")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if model.settings.selectedSkinFaceIndex != nil {
@@ -310,6 +362,19 @@ struct EditorView: View {
                     .disabled(!model.canEdit || isSaving || isShowingFileExporter)
                     .accessibilityLabel("배경 흐림 강도")
                     .accessibilityIdentifier("backgroundBlurSlider")
+                if model.settings.backgroundBlur > 0 {
+                    if model.isRendering {
+                        ProgressView("배경 효과 처리 중")
+                    } else if model.backgroundAnalysis == .failed {
+                        Text("인물 영역 분석에 실패해 배경 흐림이 적용되지 않습니다.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                        Button("배경 분석 다시 시도") { model.retryFaceAnalysis() }
+                            .accessibilityIdentifier("retryBackgroundAnalysis")
+                    } else if model.backgroundAnalysis == .ready(0) {
+                        Text("인물 영역을 찾지 못해 배경 흐림이 적용되지 않습니다.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
                 Text("Vision이 인물을 분리하지 못하면 원본을 유지합니다. 사진은 기기에서 처리됩니다.")
                     .font(.footnote).foregroundStyle(.secondary)
             }

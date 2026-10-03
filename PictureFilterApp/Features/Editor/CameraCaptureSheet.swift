@@ -7,6 +7,7 @@ struct CameraCaptureSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @State private var model: CameraModel
+    @State private var pinchStart: Double?
 
     init(service: (any CameraServing)? = nil, onCapture: @escaping (Data) -> Void) {
         self.onCapture = onCapture
@@ -34,6 +35,13 @@ struct CameraCaptureSheet: View {
                         }
                         .background(.black)
                         .frame(minHeight: 120, maxHeight: .infinity)
+                        .simultaneousGesture(MagnificationGesture()
+                            .onChanged { scale in
+                                if pinchStart == nil { pinchStart = model.zoom.displayValue }
+                                let value = (pinchStart ?? model.zoom.displayValue) * Double(scale)
+                                Task { await model.setZoom(value) }
+                            }
+                            .onEnded { _ in pinchStart = nil })
                     } else {
                         ContentUnavailableView("촬영 테스트", systemImage: "camera", description: Text("시뮬레이터용 합성 사진을 사용합니다."))
                             .frame(maxHeight: 240)
@@ -43,6 +51,32 @@ struct CameraCaptureSheet: View {
                         .accessibilityIdentifier("cameraFacing")
                     if model.capabilities.supportsFocus {
                         Text("미리보기를 눌러 초점과 측광 위치를 선택하세요.").font(.caption)
+                    }
+                    if model.zoom.range.lowerBound < model.zoom.range.upperBound {
+                        VStack(spacing: 8) {
+                            HStack {
+                                ForEach(model.zoom.stops, id: \.self) { stop in
+                                    Button("\(stop * model.zoom.displayMultiplier, specifier: "%.1f")×") {
+                                        Task { await model.setZoom(stop * model.zoom.displayMultiplier) }
+                                    }
+                                    .accessibilityIdentifier("cameraZoom-\(stop)")
+                                }
+                                Text("\(model.zoom.displayValue, specifier: "%.1f")×")
+                                    .accessibilityIdentifier("cameraZoomValue")
+                            }
+                            Slider(value: Binding(get: { model.zoom.displayValue }, set: { value in
+                                Task { await model.setZoom(value) }
+                            }), in: model.zoom.displayRange)
+                            .accessibilityLabel("촬영 배율")
+                            .accessibilityIdentifier("cameraZoomSlider")
+                            Text(model.zoom.usesDigitalUpscaling ? "디지털 확대 사용 중" : "촬영 배율")
+                                .font(.caption).foregroundStyle(.secondary)
+                            if !model.zoom.lensBoundaries.isEmpty {
+                                Text("렌즈는 조명과 거리에 따라 자동 선택됩니다.")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                            }
+                        }
+                        .disabled(!model.canAdjustZoom)
                     }
                     if model.capabilities.exposureRange.lowerBound < model.capabilities.exposureRange.upperBound {
                         HStack {
@@ -129,18 +163,23 @@ private actor SimulatedCameraService: CameraServing {
     nonisolated var session: AVCaptureSession? { nil }
     nonisolated let events: AsyncStream<CameraEvent> = AsyncStream { _ in }
     private var front = false
+    private var zoomValue = 2.0
     func start() async throws -> CameraCapabilities { state }
     func stop() async {}
-    func switchCamera() async throws -> CameraCapabilities { front.toggle(); return state }
+    func switchCamera() async throws -> CameraCapabilities { front.toggle(); zoomValue = front ? 1 : 2; return state }
     func focus(at point: CGPoint) async throws {}
     func setExposure(_ value: Float) async throws {}
+    func setZoom(_ value: Double) async throws -> CameraCapabilities { zoomValue = state.zoom.clamped(value); return state }
     func capture(flash: CameraFlash) async throws -> Data {
         try await Task.sleep(for: .milliseconds(400))
         return try await BundleSampleInput().load(SampleImage.catalog[0])
     }
     private var state: CameraCapabilities {
         CameraCapabilities(isFront: front, canSwitch: true, supportsFocus: true,
-                           exposureRange: -2...2, flashModes: front ? [.off] : [.off, .auto, .on])
+                           exposureRange: -2...2, flashModes: front ? [.off] : [.off, .auto, .on],
+                           zoom: CameraZoom(minimum: 1, maximum: front ? 3 : 12, value: zoomValue,
+                                            displayMultiplier: front ? 1 : 0.5,
+                                            lensBoundaries: front ? [] : [2, 6], upscaleThreshold: front ? 1 : 6))
     }
 }
 #endif

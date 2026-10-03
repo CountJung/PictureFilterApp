@@ -2,8 +2,117 @@ import XCTest
 import UIKit
 @testable import PictureFilterApp
 
+private actor DeferredAnalysisRenderer: PreviewRendering, FaceCounting {
+    private var pending: [Data: CheckedContinuation<FaceAnalysisState, Never>] = [:]
+    func render(_ data: Data, settings: EditSettings, maxDimension: Int) async throws -> Data { data }
+    func faceCount(in data: Data) async -> Int { 0 }
+    func backgroundAnalysis(in data: Data) async -> FaceAnalysisState { .idle }
+    func faceAnalysis(in data: Data, retry: Bool) async -> FaceAnalysisState {
+        await withCheckedContinuation { pending[data] = $0 }
+    }
+    func isWaiting(_ data: Data) -> Bool { pending[data] != nil }
+    func finish(_ data: Data, _ state: FaceAnalysisState) { pending.removeValue(forKey: data)?.resume(returning: state) }
+}
+
 @MainActor
 final class EditorModelTests: XCTestCase {
+    func testAnalysisLoadingFailureRetryAndStalePhotoResults() async throws {
+        let renderer = DeferredAnalysisRenderer()
+        let model = EditorModel(sample: SampleImage.catalog[0], renderer: renderer)
+        let first = try await BundleSampleInput().load(SampleImage.catalog[0])
+        let second = try await BundleSampleInput().load(SampleImage.catalog[1])
+        func waitForAnalysis(_ data: Data) async throws {
+            for _ in 0..<100 {
+                if await renderer.isWaiting(data) { return }
+                try await Task.sleep(for: .milliseconds(10))
+            }
+            XCTFail("Analysis did not start")
+        }
+        model.load(first, title: "first")
+        XCTAssertEqual(model.faceAnalysis, .analyzing)
+        try await waitForAnalysis(first)
+        model.load(second, title: "second")
+        try await waitForAnalysis(second)
+        await renderer.finish(first, .ready(4))
+        await Task.yield()
+        XCTAssertEqual(model.faceAnalysis, .analyzing)
+        XCTAssertEqual(model.detectedFaceCount, 0)
+        await renderer.finish(second, .failed)
+        for _ in 0..<100 where model.faceAnalysis == .analyzing { try await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertEqual(model.faceAnalysis, .failed)
+        model.retryFaceAnalysis()
+        XCTAssertEqual(model.faceAnalysis, .analyzing)
+        try await waitForAnalysis(second)
+        await renderer.finish(second, .ready(0))
+        for _ in 0..<100 where model.faceAnalysis == .analyzing { try await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertEqual(model.faceAnalysis, .ready(0))
+        XCTAssertEqual(model.originalData, second)
+    }
+
+    func testFirstCaptureUsesBrightPortraitAndRetakePreservesOnlyLook() async throws {
+        let model = EditorModel(sample: SampleImage.catalog[0])
+        let first = try await BundleSampleInput().load(SampleImage.catalog[0])
+        model.loadCapture(first)
+        XCTAssertEqual(model.originalData, first)
+        XCTAssertEqual(model.settings.filter, .brightPortrait)
+        model.setIntensity(0.8)
+        model.setPortraitBrightness(0.7)
+        model.setPortraitWarmth(-0.2)
+        model.setSkinSmoothing(0.6)
+        model.setPortraitLight(0.8)
+        model.setBackgroundBlur(0.9)
+        model.selectSkinFace(0)
+        model.setSkinSmoothing(0.9)
+        let second = try await BundleSampleInput().load(SampleImage.catalog[1])
+        model.loadCapture(second)
+        XCTAssertEqual(model.originalData, second)
+        XCTAssertEqual(model.settings.filter, .brightPortrait)
+        XCTAssertEqual(model.settings.intensity, 0.8)
+        XCTAssertEqual(model.settings.portraitBrightness, 0.7)
+        XCTAssertEqual(model.settings.portraitWarmth, -0.2)
+        XCTAssertEqual(model.settings.skinSmoothing, 0)
+        XCTAssertEqual(model.settings.portraitLight, 0)
+        XCTAssertEqual(model.settings.backgroundBlur, 0)
+        XCTAssertTrue(model.settings.faceSkinSmoothing.isEmpty)
+        XCTAssertTrue(model.settings.facePortraitLight.isEmpty)
+        XCTAssertNil(model.settings.selectedSkinFaceIndex)
+        model.selectFilter(.sepia)
+        model.loadCapture(first)
+        XCTAssertEqual(model.settings.filter, .sepia)
+    }
+
+    func testInvalidRetakePreservesPhotoAndAllSettings() async throws {
+        let model = EditorModel(sample: SampleImage.catalog[0])
+        let data = try await BundleSampleInput().load(SampleImage.catalog[0])
+        model.loadCapture(data)
+        model.setSkinSmoothing(0.4)
+        let previous = model.settings
+        model.loadCapture(Data([0, 1, 2]))
+        XCTAssertEqual(model.originalData, data)
+        XCTAssertEqual(model.settings, previous)
+        XCTAssertTrue(model.canEdit)
+        XCTAssertNotNil(model.renderError)
+    }
+
+    func testReplacementFailureKeepsEditsAndSuccessfulReplacementResetsThem() async throws {
+        let model = EditorModel(sample: SampleImage.catalog[0])
+        let data = try await BundleSampleInput().load(SampleImage.catalog[0])
+        model.loadCapture(data)
+        model.setIntensity(0.9)
+        let settings = model.settings
+        model.replacePhoto(Data(), title: "broken")
+        XCTAssertEqual(model.originalData, data)
+        XCTAssertEqual(model.settings, settings)
+        model.reportReplacementFailure(ImageServiceError.inputUnavailable)
+        XCTAssertTrue(model.canEdit)
+        XCTAssertEqual(model.originalData, data)
+        let next = try await BundleSampleInput().load(SampleImage.catalog[1])
+        model.replacePhoto(next, title: "new")
+        XCTAssertEqual(model.originalData, next)
+        XCTAssertEqual(model.settings, EditSettings())
+        XCTAssertNil(model.renderError)
+    }
+
     func testBrightPortraitControlsClampResetAndDoNotAlterOriginal() async throws {
         let model = EditorModel(sample: SampleImage.catalog[0])
         await model.load(SampleImage.catalog[0], using: BundleSampleInput())

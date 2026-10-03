@@ -334,3 +334,91 @@ iPhone 16 Pro Max (iOS 26.6.2)에서 테스트용 합성 색상표를 편집해 
 - [ ] **PF-028-V05 · 구도와 오류 복구:** 세로 화면의 미리보기/저장 화각·방향·전면 비반전 일치, 기기를 기울이거나 돌렸을 때 결과 확인. 실제 처리 실패/시간 초과가 가능한 환경에서 재시도·취소 가능 여부를 기록. 재현하지 못한 오류는 미검증으로 남김.
 
 기기 지원 배율·렌즈 전환은 PF-029, 촬영 중심 진입·재촬영 통합은 PF-030, 실제 촬영을 포함한 종합 수용은 PF-031입니다. PF-028의 실기기 조건이 끝날 때까지 상위 작업은 열린 상태로 유지합니다.
+
+
+<a id="pf-034-selection"></a>
+
+## PF-034 시뮬레이터 선택 안정화 — 2026-10-02
+
+이번 범위는 실행 대상 선택 하위 작업입니다. 빌드·테스트·앱 실행 모두 공통 선택기로 설치된 사용 가능 iOS 장치를 확인하고 명시적 ID를 사용합니다. 이름이 여러 런타임에 존재하면 임의의 최신 OS를 선택하지 않고 후보 이름·런타임·ID와 지정 방법을 출력합니다. 명시한 ID가 없거나 런타임과 충돌해도 다른 장치로 대체하지 않습니다.
+
+- `python3 scripts/test_simulator_selection.py`: **8개 통과**. 중복 이름, 이름+런타임, ID 우선 선택, ID/런타임 충돌, 사용 불가·없는 ID, 단일 이름, 비-iOS 제외를 합성 목록으로 검증.
+- `bash -n scripts/lib.sh scripts/test-ios.sh scripts/build-ios.sh scripts/run-simulator.sh`: 통과.
+- `bash scripts/test-ios.sh -only-testing:PictureFilterAppTests/CameraModelTests -resultBundlePath .build/PF034-SimulatorSelection.xcresult`: **10개 통과, 실패·건너뜀·런타임 경고 0개**. iPhone 17 Pro / iOS 26.5 / `9533B106-C319-4D9A-8527-0AB609143CCB`. 로그: `.build/PF034-SimulatorSelection.log`.
+- iOS 26.5와 iOS 27.0이 설치된 환경에서 기본 이름을 실제 ID로 해석해 테스트했습니다. 같은 이름의 여러 런타임 충돌은 합성 목록에서 검사했습니다.
+- 전체 회귀/UI 테스트, 실제 Photos 권한 복구, Vision 추론, 실기기 촬영, macOS 피부 보정 평가 기준은 이번 실행에 포함하지 않았습니다. PF-034 전체 완료를 의미하지 않습니다.
+
+### PF-034 실행 분리·평가 기준·권한 실패 재현 — 2026-10-02
+
+- `python3 scripts/test_test_profiles.py`: **4개 통과**. simulator의 9개 미실행 이름 보고, device의 실기기 ID 필수 조건, 실제 Vision/성능 9개 선택, 오타 프로필 중단을 검증했습니다. 실기기는 실행하지 않았습니다.
+- 실기기 인물 조명 검사는 Vision 실패를 `XCTSkip`으로 숨기지 않고 검출 2명이라는 필수 조건을 검사하도록 수정했습니다. 실제 실기기 실행 결과는 미검증입니다.
+- `bash scripts/validate-face-smoothing-macos.sh`: **통과**. `.build/PF034-MacValidation.log`. 합성 사진의 실제 macOS Vision 랜드마크 얼굴 1명, 강도 0 원본 바이트 일치, 얼굴 평균 채널 변화 0.37704(전체 흐림 4.83446), 페더 영역 밖 최대 변화 1/255. 비교 양쪽을 같은 Core Image 색 변환 경로로 렌더링했습니다. 이 수치는 실제 사진 피부 품질 또는 iPhone 추론 성공을 뜻하지 않습니다.
+- 실제 Photos 권한 UI 테스트: **실패 재현**. `.build/PF034-Permission-Reproduction.xcresult` (1개 실패). iPhone 17 Pro / iOS 26.5에서 `openPhotoSettings` 뒤 Settings가 앱별 권한 화면 대신 루트 화면으로 열렸으며 `PHOTOS` 항목을 찾지 못했습니다. `.build/PF034-settings.txt` 접근성 계층으로 확인했습니다. 실제 권한 요청을 먼저 등록한 시도(`PF034-Permission-Registered.xcresult`)도 실패했고, Settings 검색으로 이동하는 시도(`PF034-Permission-Navigation.xcresult`)에서는 앱 이름 검색 결과가 없어 실패했습니다. 검증되지 않은 UI 수정은 되돌렸습니다. **권한 복구 성공으로 기록하지 않습니다.** 앱 내 거부 처리와 OS 설정 탐색 실패는 별개이며 다른 런타임 및 실기기 복구는 미검증입니다.
+- 새 기본 simulator 프로필로 `bash scripts/test-ios.sh -only-testing:PictureFilterAppTests -resultBundlePath .build/PF034-UnitRegression.xcresult`: **54개 통과, 실패·건너뜀 0개**. 위 9개는 실행 대상에서 제외되어 통과 수에 포함되지 않습니다. iPhone 17 Pro / iOS 26.5. 내부 QoS 우선순위 대기 경고 1개가 남아 PF-033 성능 점검 대상으로 유지합니다. 로그 `.build/PF034-UnitRegression.log`.
+
+<a id="pf-029"></a>
+
+## PF-029 지원 배율·연속 줌 구현 — 2026-10-02
+
+- `bash scripts/test-ios.sh -only-testing:PictureFilterAppTests/CameraModelTests -only-testing:PictureFilterAppUITests/LaunchTests/testDedicatedCameraCaptureAndCancelWithSimulatorStandIn -resultBundlePath .build/PF029-Zoom.xcresult`: **모델 15개 + UI 1개 = 16개 통과**, 실패·건너뜀·런타임 경고 0개. iPhone 17 Pro / iOS 26.5 / `9533B106-C319-4D9A-8527-0AB609143CCB`. 로그 `.build/PF029-Zoom.log`.
+- 모델 검사: 표시/장치 배율 변환, 최소·최대·중간·렌즈 경계 입력, NaN/무한대 무시, 잘못된 범위 정규화, 중복/범위 밖 버튼 제외, 연속 입력의 마지막 값 유지, 적용 중 촬영·전후면 차단, 전면 1× 초기화, 취소 후 늦은 결과 폐기, 실패 후 조작 복구, 포맷 범위 변경 이벤트 및 중단 상태 보존.
+- UI 대역: 후면 1× → 3× 버튼 → 전면 1× 초기화 및 미지원 경계 버튼 제거 → 슬라이더 → 촬영 → 편집기 전달 → 필터 → 재촬영 취소 후 유지. 대역의 합성 사진은 줌에 따라 화각이 변하지 않으므로 이 검사는 실제 화각 일치의 증거가 아닙니다. 실제 preview의 핀치 제스처는 구현·컴파일됐으며 실제 카메라 미리보기 제스처 수용은 미검증입니다.
+- `xcodebuild -project PictureFilterApp.xcodeproj -scheme PictureFilterApp -configuration Debug -destination 'generic/platform=iOS' -derivedDataPath .build/DeviceDerivedData CODE_SIGNING_ALLOWED=NO -quiet build`: 성공. `.build/PF029-DeviceBuild.log`. 기존 전체 방향 지원 경고 1개. 설치·서명·실제 촬영 결과가 아닙니다.
+- 남은 실기기 수용: 최소/최대/렌즈 경계에서 미리보기·저장 화각, 실제 렌즈 전환과 저조도 대체 렌즈 동작, 단일/복수 보유 기기의 배율과 전후면 복귀. 미보유 기기는 미검증입니다. PF-029는 이 조건 때문에 열린 상태를 유지합니다.
+
+<a id="pf-030"></a>
+
+## PF-030 촬영 중심 진입·재촬영 — 2026-10-02
+
+- 최종 `.build/PF030-Regression.xcresult`: **단위 62개 + UI 4개 = 66개 통과**, 실패·건너뜀·런타임 경고 0개. iPhone 17 Pro / iOS 26.5. 로그 `.build/PF030-Regression.log`. simulator 프로필의 실기기 Vision/성능 9개는 실행하지 않았습니다.
+- 실행: `bash scripts/test-ios.sh -only-testing:PictureFilterAppTests -only-testing:PictureFilterAppUITests/LaunchTests/testStartCameraWithoutSampleRetakeCompareAndSave -only-testing:PictureFilterAppUITests/LaunchTests/testStartLibraryWithoutSampleOpensPicker -only-testing:PictureFilterAppUITests/LaunchTests/testSampleSelectionChangeAndReturn -only-testing:PictureFilterAppUITests/LaunchTests/testDedicatedCameraCaptureAndCancelWithSimulatorStandIn -resultBundlePath .build/PF030-Regression.xcresult`.
+- 샘플 없이 촬영 진입 → 3× 배율 대역 → 촬영 → 화사한 인물 기본 선택 → 세피아 선택 → 재촬영 후 세피아 유지 → 원본 비교 → 실제 시뮬레이터 Photos 저장 완료를 확인했습니다. 사진 선택 직접 진입의 시스템 picker 표시, 기존 샘플 왕복, 재촬영 취소 후 기존 사진·필터 유지도 확인했습니다.
+- 모델은 첫 촬영 기본 필터, 재촬영 프리셋·강도·밝기·따뜻함 유지와 피부/조명/배경/인물별 초기화, 잘못된 촬영 데이터 및 교체 실패 시 이전 데이터/편집 보존, 정상 사진 교체 후 기본값 복귀를 검사했습니다.
+- 촬영 데이터는 Debug 합성 대역입니다. 실제 카메라 미러링·방향·배율별 저장 구도는 미검증이며 PF-030의 실기기 수용 조건은 열린 상태로 남습니다.
+
+<a id="pf-033"></a>
+
+## PF-033 분석 상태·캐시 — 2026-10-02
+
+- 최종 `.build/PF033-Final.xcresult`: **단위 65개 + UI 3개 = 68개 통과**, 실패·건너뜀·런타임 경고 0개. iPhone 17 Pro / iOS 26.5. `.build/PF033-Final.log`.
+- 실행: `bash scripts/test-ios.sh -only-testing:PictureFilterAppTests -only-testing:PictureFilterAppUITests/LaunchTests/testPortraitControlKeepsOriginalWhenNoFaceIsDetected -only-testing:PictureFilterAppUITests/LaunchTests/testFailedFaceAnalysisIsDistinctAndOffersRetry -only-testing:PictureFilterAppUITests/LaunchTests/testStartCameraWithoutSampleRetakeCompareAndSave -resultBundlePath .build/PF033-Final.xcresult`. 실기기 Vision/반복 성능 9개는 미실행입니다.
+- 캐시 검증: 동일 원본에서 피부+조명+배경의 강도 3개를 미리보기/출력 각 3회 처리했을 때 주입한 랜드마크·분할 호출은 각각 1회. 크기가 다른 출력도 동일 분석 사용. 사진 교체 후 이전 사진으로 돌아오면 다시 분석하여 원본 하나만 보관함을 검증. 실행 시간·시뮬레이터 열 상태를 테스트 첨부에 기록했으며 실제 기기 성능의 증거로 쓰지 않습니다.
+- 실패 캐시/재시도: 실패를 0명 성공과 구분, 반복 입력 시 실패 재호출 억제, 명시적 재시도 후 재호출, 마스크 실패 시 원본 픽셀 보존과 실패 상태 보고를 검증했습니다.
+- 모델: 분석 중 상태, 실패→재시도→0명 성공, 새 사진으로 교체한 뒤 늦게 도착한 이전 분석 결과 무시. UI는 명시적 대역으로 0명과 실패 안내를 각각 검사하고 촬영부터 저장까지 회귀 확인했습니다.
+- 최초 실제 시뮬레이터 UI 검사는 0명 안내를 기대했으나 실제 추론 실패 안내가 나와 실패했습니다(`.build/PF033-UI.xcresult`). 이제 두 상태를 대역으로 분리하며 이 변경으로 시뮬레이터 추론을 성공으로 취급하지 않습니다.
+- macOS 합성 피부 보정 보조 검사 통과(`.build/PF033-MacValidation.log`). 기기용 무서명 Debug 빌드 성공(`.build/PF033-DeviceBuild.log`). 설치·실제 카메라·기기 Vision 성능은 미검증입니다.
+- 남은 수용: 실제 iPhone의 조합 효과 지연/메모리/열 상태 전후 비교와 피부·가림·모발·해상도별 시각 품질. 내부 QoS 경고는 이번 최종 결과에는 없지만 다른 환경에서도 해소됐다고 단정하지 않습니다.
+
+<a id="pf-032"></a>
+
+## PF-032 경계 보호·출력 일관성 — 2026-10-02
+
+- `bash scripts/test-ios.sh -only-testing:PictureFilterAppTests -resultBundlePath .build/PF032-Final.xcresult`: **단위 68개 통과**, 실패·건너뜀·런타임 경고 0개. iPhone 17 Pro / iOS 26.5. `.build/PF032-Final.log`. 실기기 전용 9개는 미실행.
+- 합성 마스크: 일반 페더링에서 눈 영역에 값이 새는 것을 먼저 확인하고 새 보호 마스크 적용 후 눈·입·윤곽 바깥 0, 피부 내부 240/255 초과를 검사했습니다. 실제 Vision 랜드마크 품질 검사는 아닙니다.
+- 전경색 번짐: 빨간 전경/파란 배경의 경계에서 일반 흐림은 빨강 유출이 생기지만 새 배경 전용 계산은 배경 빨강 ≤1/255, 파랑 ≥254/255를 유지하며 전경 경계 안쪽 원본 픽셀은 정확히 일치했습니다. 강도 0의 원본 보존도 확인했습니다.
+- 상대 강도: 1600px와 4096px 검정/흰색 경계의 대응 지점 7개가 채널 오차 3/255 이내이며 흐림이 실제 적용됐음을 함께 검사했습니다. 최초 반경 비례 방식은 한 지점에서 95/255 대 88/255로 실패했습니다(`PF032-Boundaries.xcresult`). 임계값을 늘리지 않고 공통 작업 해상도 계산으로 수정 후 통과했습니다.
+- macOS 합성 얼굴 랜드마크 보조 검사 통과(`.build/PF032-MacValidation.log`): 얼굴 평균 변화 0.31531, 전체 흐림 4.83446, 보호 배경 최대 변화 0. 기기용 무서명 빌드 성공(`.build/PF032-DeviceBuild.log`). Core Image 커널 언어 API의 deprecated 경고가 남지만 컴파일 오류·테스트 실패는 없습니다.
+- 미검증: 자연 사진의 모발·안경·가림·옆얼굴·다중 인물 경계 확대 리뷰, 실제 해상도별 주관적 효과 품질. 해당 수용은 사용자 실제 사진 평가가 필요하며 합성 검증으로 완료 처리하지 않습니다.
+
+## 사용자 판단·실기기 제외 구현 범위 감사 — 2026-10-02
+
+| 열린 작업 | 이번 범위에서 구현·자동 확인한 내용 | 별도 수용이 필요한 내용 |
+| --- | --- | --- |
+| PF-028 | 전용 촬영 서비스·상태·취소·원본 바이트 전달, 모델/대역 UI 회귀 | 실제 전후면·권한·초점·플래시·중단·구도 |
+| PF-029 | 지원 범위·표시 배율·렌즈 경계·연속 조절·전환 초기화, 범위/경합 테스트 | 실제 렌즈 전환·화각·핀치 감각·기종별 수용 |
+| PF-030 | 직접 촬영/사진 선택, 촬영 기본 필터, 재촬영 정책·교체 실패 보존, 저장까지 대역 UI | 실제 전면 미러링·회전·저장 구도 |
+| PF-031 | 기존 수용 시나리오/기기 기록 기준 유지 | 실제 촬영·대표 사진·사용자 평가 전체 |
+| PF-032 | 특징/윤곽 보호, 전경색 번짐 억제, 1600/4096 상대 강도, 합성 픽셀 검사 | 실제 가림·모발·옆얼굴·다중 인물 확대 리뷰 |
+| PF-033 | 분석 상태/재시도/취소, 한 원본 캐시, 미리보기/출력 공통 좌표, 호출 수 검증 | 기기 지연·메모리·열 상태와 실제 품질 |
+| PF-034 | 명시적 장치 선택, simulator/device 프로필, 미실행 보고, macOS 영역 보존 기준 | 실기기 Vision/카메라 실행 기록 |
+| PF-035 | 기존 세부 품질 검증표 유지 | 대표 사진 선정·기준 확정·사용자 전후 비교 리뷰 |
+
+전체 simulator 프로필 실행 `.build/Goal-FullSimulator.xcresult`는 **88개 중 87개 통과, 사진 권한 복구 UI 1개 실패**, 건너뜀·런타임 경고 0개였습니다. 실기기 전용 9개는 제외 목록으로 명시됐습니다. 제품 구현의 전체 단위 68개와 다른 UI 19개는 통과했으며, 권한 복구 테스트 수정은 별도 결과로 아래에 기록합니다. 장치 선택 회귀 8개·실행 프로필 회귀 4개·셸 문법·diff 공백 검사는 통과했습니다.
+
+### PF-034 실제 Photos 권한 복구 수정 결과
+
+`.build/PF034-Permission-Final.xcresult`: **1개 통과**, 실패·건너뜀·런타임 경고 0개. 실제 시뮬레이터 Photos 권한을 ‘안 함’으로 변경 → 일반 앱의 실제 Photos 서비스 저장 거부 확인 → ‘사진 추가만’ 복구 → 일반 앱 저장 성공을 확인했습니다. 로그 `.build/PF034-Permission-Final.log`.
+
+실패 원인은 테스트의 환경/탐색 가정이었습니다. 대역만 실행하면 초기 권한 항목이 없을 수 있으므로 실제 권한을 먼저 요청합니다. 앱 설정 URL이 Settings 루트를 열 때는 남은 전역 검색창을 닫고 설치된 앱 목록으로 이동합니다. 복귀 시 이미 Photos 권한 페이지가 열려 있으면 앱 목록을 다시 찾지 않습니다. 권한 변경 후 실패하면 복구를 시도하며 복구 실패도 검사합니다. 중간 `PF034-AppSettings.xcresult`는 남은 검색창 때문에, `PF034-CleanSettings.xcresult`는 이미 열린 Photos 페이지를 인식하지 못해 실패했습니다. 최종 결과가 이전 권한 복구 미해결 기록을 대체합니다.
+
+최종 자동 검증은 전체 회귀의 87개 통과 + 수정한 권한 복구 1개 집중 통과입니다. 하나의 결과 묶음에서 88개 모두 통과했다고 기록하지 않습니다. 추가 Python 회귀 12개, macOS 보조 검사, 기기용 무서명 컴파일 및 셸 문법/공백 검사도 통과했습니다. 실제 기기와 자연 사진 사용자 품질 판정은 수행하지 않았습니다. 남은 상위 PF 항목은 보류로 유지합니다.

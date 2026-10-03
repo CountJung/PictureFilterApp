@@ -9,6 +9,9 @@ final class CameraModel {
     private(set) var capabilities = CameraCapabilities()
     private(set) var isCapturing = false
     private(set) var isSwitching = false
+    private(set) var isZooming = false
+    private(set) var zoom = CameraZoom()
+    @ObservationIgnored private var pendingZoom: Double?
     private(set) var exposure: Float = 0
     private(set) var flash: CameraFlash = .off
     private(set) var message: String?
@@ -19,7 +22,8 @@ final class CameraModel {
 
     init(service: any CameraServing) { self.service = service }
     deinit { eventTask?.cancel() }
-    var canCapture: Bool { phase == .ready && !isCapturing && !isSwitching }
+    var canCapture: Bool { phase == .ready && !isCapturing && !isSwitching && !isZooming }
+    var canAdjustZoom: Bool { phase == .ready && !isCapturing && !isSwitching }
 
     func start() async {
         guard !Task.isCancelled, phase != .starting, phase != .ready else { return }
@@ -54,6 +58,8 @@ final class CameraModel {
         phase = .idle
         isCapturing = false
         isSwitching = false
+        isZooming = false
+        pendingZoom = nil
     }
 
     func stop() async {
@@ -125,8 +131,30 @@ final class CameraModel {
         }
     }
 
+    func setZoom(_ displayValue: Double) async {
+        guard canAdjustZoom, displayValue.isFinite else { return }
+        pendingZoom = zoom.clamped(displayValue / zoom.displayMultiplier)
+        guard !isZooming else { return }
+        isZooming = true
+        let ticket = revision
+        defer { if ticket == revision { isZooming = false; pendingZoom = nil } }
+        while let requested = pendingZoom {
+            pendingZoom = nil
+            do {
+                let state = try await service.setZoom(requested)
+                guard active, ticket == revision else { return }
+                update(state)
+            } catch {
+                guard active, ticket == revision else { return }
+                message = error.localizedDescription
+                return
+            }
+        }
+    }
+
     private func update(_ state: CameraCapabilities) {
         capabilities = state
+        zoom = state.zoom
         exposure = state.exposureBias
         if !state.flashModes.contains(flash) { flash = .off }
     }
@@ -144,10 +172,15 @@ final class CameraModel {
     private func receive(_ event: CameraEvent) {
         guard active else { return }
         switch event {
+        case .capabilitiesChanged(let state):
+            guard phase == .ready else { return }
+            update(state)
         case .interrupted:
             revision = UUID()
             isCapturing = false
             isSwitching = false
+            isZooming = false
+            pendingZoom = nil
             phase = .interrupted
             message = CameraFailure.interrupted.localizedDescription
         case .recovered(let state):
@@ -158,6 +191,8 @@ final class CameraModel {
             revision = UUID()
             isCapturing = false
             isSwitching = false
+            isZooming = false
+            pendingZoom = nil
             fail(error)
         }
     }

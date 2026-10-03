@@ -5,7 +5,140 @@ import UniformTypeIdentifiers
 import Vision
 @testable import PictureFilterApp
 
+private final class AnalysisProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private var faces = 0
+    private var masks = 0
+    func face() -> Int { lock.lock(); defer { lock.unlock() }; faces += 1; return faces }
+    func mask() -> Int { lock.lock(); defer { lock.unlock() }; masks += 1; return masks }
+    var counts: [Int] { lock.lock(); defer { lock.unlock() }; return [faces, masks] }
+}
+
 final class FilterRendererTests: XCTestCase {
+    private func rgba(_ image: CIImage, x: Int, y: Int) -> [UInt8] {
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = CIContext(options: [.workingColorSpace: CGColorSpace(name: CGColorSpace.sRGB)!])
+        context.render(image, toBitmap: &pixel, rowBytes: 4,
+                       bounds: CGRect(x: x, y: y, width: 1, height: 1), format: .RGBA8,
+                       colorSpace: CGColorSpace(name: CGColorSpace.sRGB)!)
+        return pixel
+    }
+
+    func testFeatheredSkinMaskCannotReenterProtectedFeatureOrCrossContour() {
+        let extent = CGRect(x: 0, y: 0, width: 160, height: 160)
+        let black = CIImage(color: .black).cropped(to: extent)
+        let face = CIImage(color: .white).cropped(to: CGRect(x: 20, y: 20, width: 120, height: 120))
+        let eye = CIImage(color: .black).cropped(to: CGRect(x: 35, y: 80, width: 30, height: 15))
+        let mouth = CIImage(color: .black).cropped(to: CGRect(x: 65, y: 45, width: 30, height: 15))
+        let allowed = mouth.composited(over: eye.composited(over: face.composited(over: black)))
+        let feathered = allowed.applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 5])
+        let protected = FaceSkinSmoother.protectedMask(allowed, allowed: allowed, radius: 5)
+        XCTAssertGreaterThan(rgba(feathered, x: 36, y: 85)[0], 0, "Regression fixture must expose feather leakage")
+        for point in [(36, 85), (66, 50), (19, 70)] {
+            XCTAssertEqual(rgba(protected, x: point.0, y: point.1)[0], 0)
+        }
+        XCTAssertGreaterThan(rgba(protected, x: 105, y: 105)[0], 240)
+    }
+
+    func testBackgroundBlurDoesNotSpreadForegroundColorAndKeepsForegroundSharp() {
+        let extent = CGRect(x: 0, y: 0, width: 256, height: 128)
+        let background = CIImage(color: CIColor(red: 0, green: 0, blue: 1)).cropped(to: extent)
+        let foreground = CIImage(color: CIColor(red: 1, green: 0, blue: 0))
+            .cropped(to: CGRect(x: 0, y: 0, width: 128, height: 128))
+        let input = foreground.composited(over: background)
+        let mask = CIImage(color: .white).cropped(to: foreground.extent)
+            .composited(over: CIImage(color: .black).cropped(to: extent))
+        let output = PortraitEffects.applyBackgroundBlur(to: input, mask: mask, intensity: 1)
+        let oldBlur = input.clampedToExtent().applyingFilter("CIGaussianBlur", parameters: [kCIInputRadiusKey: 7.68])
+        XCTAssertGreaterThan(rgba(oldBlur, x: 134, y: 64)[0], 5)
+        XCTAssertEqual(rgba(output, x: 126, y: 64), [255, 0, 0, 255])
+        let edge = rgba(output, x: 134, y: 64)
+        XCTAssertLessThanOrEqual(edge[0], 1)
+        XCTAssertGreaterThanOrEqual(edge[2], 254)
+        XCTAssertEqual(rgba(PortraitEffects.applyBackgroundBlur(to: input, mask: mask, intensity: 0), x: 134, y: 64), rgba(input, x: 134, y: 64))
+    }
+
+    func testBackgroundBlurHasSameRelativeStrengthAt1600And4096Pixels() {
+        func chart(_ width: Int) -> CIImage {
+            let extent = CGRect(x: 0, y: 0, width: width, height: width / 4)
+            let input = CIImage(color: .white).cropped(to: CGRect(x: width / 2, y: 0, width: width / 2, height: width / 4))
+                .composited(over: CIImage(color: .black).cropped(to: extent))
+            return PortraitEffects.applyBackgroundBlur(to: input, mask: CIImage(color: .black).cropped(to: extent), intensity: 1)
+        }
+        let preview = chart(1600)
+        let output = chart(4096)
+        // Equivalent pixel centers; allow quantization and subpixel sampling only.
+        for fraction in [0.44, 0.47, 0.49, 0.5, 0.51, 0.53, 0.56] {
+            let small = rgba(preview, x: Int(1600 * fraction), y: 200)[0]
+            let large = rgba(output, x: Int(4096 * fraction), y: 512)[0]
+            XCTAssertEqual(Double(small), Double(large), accuracy: 3)
+        }
+        XCTAssertGreaterThan(rgba(output, x: Int(4096 * 0.47), y: 512)[0], 5,
+                             "A no-op fallback or old 48px cap must not pass as scale consistency")
+    }
+
+    func testPortraitAnalysisReusedAcrossSlidersPreviewAndExportAndEvictedOnPhotoChange() async throws {
+        let probe = AnalysisProbe()
+        let renderer = FilterRenderer(landmarkDetector: { _ in
+            _ = probe.face()
+            return [VNFaceObservation(boundingBox: CGRect(x: 0.2, y: 0.2, width: 0.5, height: 0.5))]
+        }, maskDetector: { image in
+            _ = probe.mask()
+            return CIImage(color: .white).cropped(to: CGRect(x: 0, y: 0, width: image.width, height: image.height))
+        })
+        let first = try await BundleSampleInput().load(SampleImage.catalog[0])
+        let state = await renderer.faceAnalysis(in: first, retry: false)
+        XCTAssertEqual(state, .ready(1))
+        let started = ContinuousClock.now
+        for intensity in [0.2, 0.5, 0.9] {
+            var edit = EditSettings()
+            edit.setSkinSmoothing(intensity)
+            edit.setPortraitLight(intensity)
+            edit.setBackgroundBlur(intensity)
+            _ = try await renderer.render(first, settings: edit, maxDimension: 160)
+            _ = try await renderer.renderOutput(first, settings: edit, maxDimension: 320)
+        }
+        XCTAssertEqual(probe.counts, [1, 1], "One analysis per photo, independent of slider values/output size")
+        let metrics = XCTAttachment(string: "Synthetic cached pipeline: 3 combined-effect previews + 3 exports; elapsed \(started.duration(to: .now)); landmark calls 1; mask calls 1; thermal state \(ProcessInfo.processInfo.thermalState.rawValue). This is not physical-device performance acceptance.")
+        metrics.lifetime = .keepAlways
+        add(metrics)
+        let second = try await BundleSampleInput().load(SampleImage.catalog[1])
+        _ = await renderer.faceAnalysis(in: second, retry: false)
+        _ = await renderer.faceAnalysis(in: first, retry: false)
+        XCTAssertEqual(probe.counts, [3, 1], "Only one original is retained; old photo results are evicted")
+    }
+
+    func testAnalysisFailuresAreDistinctCachedAndExplicitlyRetryable() async throws {
+        let probe = AnalysisProbe()
+        let renderer = FilterRenderer(landmarkDetector: { _ in
+            if probe.face() == 1 { throw ImageServiceError.inputUnavailable }
+            return []
+        }, maskDetector: { _ in
+            _ = probe.mask()
+            throw ImageServiceError.inputUnavailable
+        })
+        let data = try await BundleSampleInput().load(SampleImage.catalog[0])
+        let failed = await renderer.faceAnalysis(in: data, retry: false)
+        let cached = await renderer.faceAnalysis(in: data, retry: false)
+        XCTAssertEqual(failed, .failed)
+        XCTAssertEqual(cached, .failed)
+        XCTAssertEqual(probe.counts, [1, 0])
+        let retried = await renderer.faceAnalysis(in: data, retry: true)
+        XCTAssertEqual(retried, .ready(0), "An empty successful result is not an inference failure")
+        var edit = EditSettings()
+        edit.setBackgroundBlur(0.8)
+        let unchanged = try await renderer.render(data, settings: EditSettings(), maxDimension: 160)
+        let fallback = try await renderer.render(data, settings: edit, maxDimension: 160)
+        XCTAssertEqual(unchanged, fallback)
+        _ = try await renderer.render(data, settings: edit, maxDimension: 160)
+        let background = await renderer.backgroundAnalysis(in: data)
+        XCTAssertEqual(background, .failed)
+        XCTAssertEqual(probe.counts, [2, 1])
+        _ = await renderer.faceAnalysis(in: data, retry: true)
+        _ = try await renderer.render(data, settings: edit, maxDimension: 160)
+        XCTAssertEqual(probe.counts, [3, 2])
+    }
+
     private func settings(_ filter: PhotoFilter, _ intensity: Double) -> EditSettings {
         var value = EditSettings()
         value.select(filter)
@@ -302,13 +435,7 @@ final class FilterRendererTests: XCTestCase {
 
     func testPortraitLightChangesOnlySelectedSyntheticFace() async throws {
         let input = try portraitPairFixture()
-        do {
-            guard try detectedFaceCount(input) == 2 else { throw XCTSkip("Vision did not detect the synthetic faces on this runtime.") }
-        } catch is XCTSkip {
-            throw XCTSkip("Vision face analysis is unavailable on this runtime.")
-        } catch {
-            throw XCTSkip("Vision face analysis is unavailable on this runtime: \(error.localizedDescription)")
-        }
+        XCTAssertEqual(try detectedFaceCount(input), 2, "This device-only regression requires real Vision inference.")
 
         var settings = EditSettings()
         settings.selectSkinFace(0)

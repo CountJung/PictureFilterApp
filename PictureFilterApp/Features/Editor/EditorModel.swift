@@ -18,6 +18,9 @@ final class EditorModel {
     private(set) var isRendering = false
     private(set) var renderError: String?
     private(set) var detectedFaceCount = 0
+    private(set) var faceAnalysis: FaceAnalysisState = .idle
+    private(set) var backgroundAnalysis: FaceAnalysisState = .idle
+    @ObservationIgnored private var analysisTask: Task<Void, Never>?
     private(set) var previewRevision = UUID()
     @ObservationIgnored private let renderer: any PreviewRendering
     @ObservationIgnored private let faceCounter: (any FaceCounting)?
@@ -34,6 +37,8 @@ final class EditorModel {
         self.faceCounter = renderer as? any FaceCounting
         self.waitForQuiet = waitForQuiet
     }
+
+    deinit { analysisTask?.cancel() }
 
     var canEdit: Bool { phase == .ready }
     var errorMessage: String? {
@@ -150,6 +155,37 @@ final class EditorModel {
         }
     }
 
+    /// Retakes preserve the selected look, but never another photo's face edits.
+    func loadCapture(_ data: Data) {
+        guard UIImage(data: data) != nil else {
+            renderError = ImageServiceError.invalidImage.localizedDescription
+            return
+        }
+        let previous = settings
+        let hadPhoto = originalData != nil
+        load(data, title: "카메라 사진")
+        settings.select(hadPhoto ? previous.filter : .brightPortrait)
+        if hadPhoto {
+            settings.setIntensity(previous.intensity)
+            settings.setPortraitBrightness(previous.portraitBrightness)
+            settings.setPortraitWarmth(previous.portraitWarmth)
+        }
+        invalidatePreview()
+    }
+
+    func replacePhoto(_ data: Data, title: String) {
+        guard UIImage(data: data) != nil else {
+            reportReplacementFailure(ImageServiceError.invalidImage)
+            return
+        }
+        load(data, title: title)
+    }
+
+    func reportReplacementFailure(_ error: Error) {
+        if canEdit { renderError = error.localizedDescription }
+        else { failLoading(error) }
+    }
+
     /// Reports a picker or data-provider failure using the normal editor error
     /// state. A cancelled picker does not call this method.
     func failLoading(_ error: Error, title: String = "선택한 사진") {
@@ -176,10 +212,12 @@ final class EditorModel {
             try Task.checkCancellation()
             guard revision == previewRevision, renderID == activeRender else { return }
             let output = try await renderer.render(originalData, settings: snapshot, maxDimension: 1600)
+            let backgroundState = await faceCounter?.backgroundAnalysis(in: originalData) ?? .idle
             try Task.checkCancellation()
             guard revision == previewRevision, renderID == activeRender else { return }
             guard let image = UIImage(data: output) else { throw ImageServiceError.invalidImage }
             previewImage = image
+            backgroundAnalysis = backgroundState
             isRendering = false
         } catch {
             guard revision == previewRevision, renderID == activeRender else { return }
@@ -206,6 +244,9 @@ final class EditorModel {
     }
 
     private func beginLoading(_ sample: SampleImage) -> UUID {
+        analysisTask?.cancel()
+        faceAnalysis = .idle
+        backgroundAnalysis = .idle
         let request = UUID()
         activeRequest = request
         self.sample = sample
@@ -226,11 +267,26 @@ final class EditorModel {
         originalImage = image
         phase = .ready
         invalidatePreview()
-        guard let faceCounter else { return }
-        Task { [weak self] in
-            let count = await faceCounter.faceCount(in: data)
-            guard let self, self.activeRequest == request else { return }
-            self.detectedFaceCount = count
+        startFaceAnalysis(data, request: request, retry: false)
+    }
+
+    func retryFaceAnalysis() {
+        guard canEdit, let data = originalData else { return }
+        startFaceAnalysis(data, request: activeRequest, retry: true)
+    }
+
+    private func startFaceAnalysis(_ data: Data, request: UUID, retry: Bool) {
+        analysisTask?.cancel()
+        guard let faceCounter else { faceAnalysis = .idle; return }
+        faceAnalysis = .analyzing
+        detectedFaceCount = 0
+        analysisTask = Task { [weak self] in
+            let state = await faceCounter.faceAnalysis(in: data, retry: retry)
+            guard !Task.isCancelled, let self, self.activeRequest == request else { return }
+            self.faceAnalysis = state
+            if case .ready(let count) = state { self.detectedFaceCount = count }
+            else { self.detectedFaceCount = 0 }
+            if retry { self.invalidatePreview() }
         }
     }
 
